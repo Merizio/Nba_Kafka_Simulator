@@ -6,8 +6,7 @@ import time as tempo
 """
 SIMULADOR DE UM JOGO DA NBA
 
-FEITO POR FRANCISCO MERIZIO E LUCAS DANIEL
-DISCIPLINA DE SIST. ORIENTADOS A EVENTO
+UMA SIMULAÇÃO DE 2 TIMES ALEATORIOS EM UMA PARTIDA AOS MOLDES TRADICIONAIS DA NBA 
 """
 
 #ESCOLHA DOS TIMES PARA O SIMULADOR
@@ -73,8 +72,10 @@ for i in range(4):
 
         #INVERSAO DA POSSE
         time_ataque, time_defesa = time_defesa, time_ataque
+
+        #IDEIA DE TEMPO REAL
         #tempo.sleep(0.1)
 
 #STATUS FINAL DA PARTIDA
-print("\nFinal de Partida!\n")
+print("\nFinal de Partida!\nEstatísticas Finais:\n")
 manipulator.exibir_partida(time_A, time_B)
