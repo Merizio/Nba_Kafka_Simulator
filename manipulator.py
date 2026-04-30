@@ -36,6 +36,11 @@ class Time:
         for n in self.reservas:
             n.exibir_jogador()
 
+    def exibir_titulares(self):
+        return [n.Player for n in self.titulares]
+    def exibir_resevas(self):
+        return [n.Player for n in self.reservas]
+
 
 def escolher_times(nba):
     t1, t2 = pd.Series(nba["Team"].unique()).sample(2)
