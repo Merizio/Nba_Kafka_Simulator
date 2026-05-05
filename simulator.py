@@ -3,12 +3,27 @@ import pandas as pd
 import random
 import time as tempo
 import json
+import sys
+from confluent_kafka import Producer
 
 """
 SIMULADOR DE UM JOGO DA NBA
 
 UMA SIMULAÇÃO DE 2 TIMES ALEATORIOS EM UMA PARTIDA AOS MOLDES TRADICIONAIS DA NBA 
 """
+
+#CONFIGURAÇÃO DO PRODUTOR KAFKA
+def delivery_callback(err, msg):
+        if err:
+            sys.stderr.write('%% Erro no envio da mensagem: %s\n' % err)
+        else:
+            sys.stderr.write('%% Messagem enviada para %s [%d] @ %d\n' % (msg.topic(), msg.partition(), msg.offset()))
+
+topic= 'nba_game'
+cfg = {
+    'bootstrap.servers': 'localhost:19092'
+}
+prod = Producer(cfg)
 
 #ESCOLHA DOS TIMES PARA O SIMULADOR
 csv=pd.read_csv("./data/list_nba_players.csv")
@@ -34,6 +49,9 @@ match = {
 }
 
 match_event = json.dumps(match, ensure_ascii=False)
+prod.produce(topic=topic, value=match_event.encode("utf-8"), callback=delivery_callback)
+prod.poll(0)
+
 print(match_event) #PRODUCE EVENT
 
 time_ataque, time_defesa = time_A, time_B
@@ -74,6 +92,8 @@ for i in range(4):
                 'jogador_in': jogador2.Player,
             }
             event_subs_json = json.dumps(event_subs, ensure_ascii=False)
+            prod.produce(topic=topic, value=event_subs_json.encode("utf-8"), callback=delivery_callback)
+            prod.poll(0)
             print(event_subs_json)
 
         #TURNOVER
@@ -130,10 +150,14 @@ for i in range(4):
 
         if(event!=model):
             event_json = json.dumps(event, ensure_ascii=False)
+            prod.produce(topic=topic, value=event_json.encode("utf-8"), callback=delivery_callback)
+            prod.poll(0)
             print(event_json)
 
         #IDEIA DE TEMPO REAL
         tempo.sleep(0.1)
+
+prod.flush()
 
 #STATUS FINAL DA PARTIDA
 print("\nFinal de Partida!\nEstatísticas Finais:\n")
