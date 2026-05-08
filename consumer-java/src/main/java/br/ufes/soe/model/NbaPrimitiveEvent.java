@@ -13,9 +13,10 @@ public sealed interface NbaPrimitiveEvent permits
         NbaPrimitiveEvent.UnrecognizedEvent {
 
     /** {@code sourcePayload} é o nó JSON original (apenas referência para log/diagnóstico). */
-    record MatchStartEvent(String match, List<String> teamNames, JsonNode sourcePayload) implements NbaPrimitiveEvent {}
+    record MatchStartEvent(String match, List<Team> teams, JsonNode sourcePayload) implements NbaPrimitiveEvent {}
 
-    record MatchPlayEvent(int quarter, String team, String scoreboard, PlayAction action) implements NbaPrimitiveEvent {}
+    /** {@code teamName} corresponde ao campo {@code time} do produtor (nome do time no ataque). */
+    record MatchPlayEvent(int quarter, String teamName, String scoreboard, PlayAction action) implements NbaPrimitiveEvent {}
 
     record UnrecognizedEvent(String tipoHint, JsonNode rawNode) implements NbaPrimitiveEvent {}
 }

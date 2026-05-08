@@ -1,6 +1,8 @@
 package br.ufes.soe.model;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -9,6 +11,7 @@ import java.util.Map;
  */
 public final class MatchState {
     private String matchTitle = "";
+    private List<Team> teams = new ArrayList<>();
     private final Map<String, Integer> foulsByPlayer = new HashMap<>();
     private int turnoverCount;
 
@@ -16,23 +19,27 @@ public final class MatchState {
         return matchTitle;
     }
 
-    public void resetForNewMatch(String title) {
+    public List<Team> getTeams() {
+        return teams;
+    }
+
+    public void resetForNewMatch(String title, List<Team> matchTeams) {
         matchTitle = title != null ? title : "";
+        teams = matchTeams != null ? new ArrayList<>(matchTeams) : new ArrayList<>();
         foulsByPlayer.clear();
         turnoverCount = 0;
     }
 
-    public int getFoulCount(String player) {
-        return foulsByPlayer.getOrDefault(player, 0);
-    }
-
-    /** Retorna o total após incrementar. */
-    public int incrementFoul(String player) {
-        if (player == null || player.isEmpty()) {
+    public int incrementFoul(String playerName) {
+        if (playerName == null || playerName.isEmpty()) {
             return 0;
         }
-        foulsByPlayer.merge(player, 1, Integer::sum);
-        return foulsByPlayer.get(player);
+        foulsByPlayer.merge(playerName, 1, Integer::sum);
+        return foulsByPlayer.get(playerName);
+    }
+
+    public int getFoulCount(String playerName) {
+        return foulsByPlayer.getOrDefault(playerName, 0);
     }
 
     public int incrementTurnoverAndGetTotal() {

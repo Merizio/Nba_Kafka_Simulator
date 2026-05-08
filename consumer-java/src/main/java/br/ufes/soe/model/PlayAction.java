@@ -5,13 +5,13 @@ package br.ufes.soe.model;
  */
 public sealed interface PlayAction permits PlayAction.Point, PlayAction.Foul, PlayAction.Turnover, PlayAction.Substitution, PlayAction.Unknown {
 
-    record Point(String player, int pointsValue) implements PlayAction {}
+    record Point(Player player, int pointsValue) implements PlayAction {}
 
-    record Foul(String committedBy, String receivedBy) implements PlayAction {}
+    record Foul(Player committedBy, Player receivedBy) implements PlayAction {}
 
-    record Turnover(String player) implements PlayAction {}
+    record Turnover(Player player) implements PlayAction {}
 
-    record Substitution(String playerOut, String playerIn) implements PlayAction {}
+    record Substitution(Player playerOut, Player playerIn) implements PlayAction {}
 
     record Unknown(String rawActionKey) implements PlayAction {}
 }

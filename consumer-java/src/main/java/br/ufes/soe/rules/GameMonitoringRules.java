@@ -6,6 +6,7 @@ import br.ufes.soe.model.NbaPrimitiveEvent.MatchPlayEvent;
 import br.ufes.soe.model.NbaPrimitiveEvent.MatchStartEvent;
 import br.ufes.soe.model.NbaPrimitiveEvent.UnrecognizedEvent;
 import br.ufes.soe.model.PlayAction;
+import br.ufes.soe.model.Team;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
@@ -30,10 +31,14 @@ public final class GameMonitoringRules {
     }
 
     private void onMatchStart(MatchStartEvent e, MatchState state) throws Exception {
-        state.resetForNewMatch(e.match());
+        state.resetForNewMatch(e.match(), e.teams());
         System.out.println("[INÍCIO DE PARTIDA] " + (e.match().isEmpty() ? "(sem campo match)" : e.match()));
-        for (String team : e.teamNames()) {
-            System.out.printf("  time no JSON: %s%n", team);
+        for (Team team : e.teams()) {
+            System.out.printf(
+                    "  time: %s — titulares=%d, reservas=%d%n",
+                    team.getName(),
+                    team.getStarters().size(),
+                    team.getReserves().size());
         }
         System.out.println(mapper.writerWithDefaultPrettyPrinter().writeValueAsString(e.sourcePayload()));
     }
@@ -43,26 +48,28 @@ public final class GameMonitoringRules {
         System.out.printf(
                 "[EVENTO] quarto=%d time=%s placar=%s ação=%s%n",
                 e.quarter(),
-                e.team(),
+                e.teamName(),
                 e.scoreboard(),
                 actionLabel(a));
 
         if (a instanceof PlayAction.Point p) {
-            System.out.printf("  → Cesta: %s (%d pts)%n", p.player(), p.pointsValue());
+            System.out.printf("  → Cesta: %s (%d pts)%n", p.player().getName(), p.pointsValue());
+            p.player().IncrementPoints(p.pointsValue());
+
         } else if (a instanceof PlayAction.Foul f) {
-            int n = state.incrementFoul(f.committedBy());
+            f.committedBy().IncrementFouls();
             System.out.printf(
-                    "  → Falta: %s (total de faltas neste jogador no estado local: %d)%n",
-                    f.committedBy(),
-                    n);
+                    "  → Falta: %s (total neste jogador no estado local: %d)%n",
+                    f.committedBy().getName(),
+                    f.committedBy().getFouls());
         } else if (a instanceof PlayAction.Turnover t) {
             int total = state.incrementTurnoverAndGetTotal();
-            System.out.printf("  → Turnover #%d: %s%n", total, t.player());
+            System.out.printf("  → Turnover #%d: %s%n", total, t.player().getName());
         } else if (a instanceof PlayAction.Substitution s) {
             System.out.printf(
                     "  → Sub: sai %s, entra %s%n",
-                    s.playerOut(),
-                    s.playerIn());
+                    s.playerOut().getName(),
+                    s.playerIn().getName());
         } else if (a instanceof PlayAction.Unknown u) {
             System.out.printf("  → Ação não mapeada: `%s`%n", u.rawActionKey());
         }

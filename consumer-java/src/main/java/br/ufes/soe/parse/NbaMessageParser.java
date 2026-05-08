@@ -5,6 +5,8 @@ import br.ufes.soe.model.NbaPrimitiveEvent.MatchPlayEvent;
 import br.ufes.soe.model.NbaPrimitiveEvent.MatchStartEvent;
 import br.ufes.soe.model.NbaPrimitiveEvent.UnrecognizedEvent;
 import br.ufes.soe.model.PlayAction;
+import br.ufes.soe.model.Player;
+import br.ufes.soe.model.Team;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -42,28 +44,47 @@ public final class NbaMessageParser {
         };
     }
 
+    /**
+     * JSON do produtor: {@code titulares} / {@code reservas} são arrays de <strong>nomes</strong> (strings).
+     */
     private static MatchStartEvent parseInicio(JsonNode root) {
         String match = root.path("match").asText("");
-        List<String> teams = new ArrayList<>();
+        List<Team> teams = new ArrayList<>();
         for (Iterator<String> it = root.fieldNames(); it.hasNext(); ) {
-            String key = it.next();
-            if ("tipo".equals(key) || "match".equals(key)) {
+            String teamName = it.next();
+            if ("tipo".equals(teamName) || "match".equals(teamName)) {
                 continue;
             }
-            teams.add(key);
+            JsonNode teamNode = root.path(teamName);
+            List<Player> starters = new ArrayList<>();
+            List<Player> reserves = new ArrayList<>();
+            Team team = new Team(teamName, starters, reserves);
+
+            for (JsonNode n : teamNode.path("titulares")) {
+                if (n.isTextual()) {
+                    starters.add(new Player(n.asText(), -1, team, ""));
+                }
+            }
+            for (JsonNode n : teamNode.path("reservas")) {
+                if (n.isTextual()) {
+                    reserves.add(new Player(n.asText(), -1, team, ""));
+                }
+            }
+            teams.add(team);
         }
-        return new MatchStartEvent(match, List.copyOf(teams), root);
+        return new MatchStartEvent(match, teams, root);
     }
 
     private static MatchPlayEvent parseEvento(JsonNode root) {
         int quarter = root.path("quarto").asInt(-1);
-        String team = root.path("time").asText("");
+        String teamName = root.path("time").asText("");
         String scoreboard = root.path("placar").asText("");
-        JsonNode det = root.path("detalhes");
-        PlayAction action = parseDetalhes(det);
-        return new MatchPlayEvent(quarter, team, scoreboard, action);
+        JsonNode detalhes = root.path("detalhes");
+        PlayAction action = parseDetalhes(detalhes);
+        return new MatchPlayEvent(quarter, teamName, scoreboard, action);
     }
 
+    /** Campos como no Python: {@code detalhes.ação}, {@code jogador}, etc. */
     private static PlayAction parseDetalhes(JsonNode det) {
         if (det == null || det.isNull() || det.isMissingNode()) {
             return new PlayAction.Unknown("");
@@ -71,16 +92,21 @@ public final class NbaMessageParser {
         String acao = det.path("ação").asText("");
         return switch (acao) {
             case "POINT" -> new PlayAction.Point(
-                    det.path("jogador").asText(""),
+                    playerNamed(det.path("jogador").asText("")),
                     det.path("valor").asInt(0));
             case "FOUL" -> new PlayAction.Foul(
-                    det.path("jogador_commit").asText(""),
-                    det.path("jogador_receive").asText(""));
-            case "TURNOVER" -> new PlayAction.Turnover(det.path("jogador").asText(""));
+                    playerNamed(det.path("jogador_commit").asText("")),
+                    playerNamed(det.path("jogador_receive").asText("")));
+            case "TURNOVER" -> new PlayAction.Turnover(playerNamed(det.path("jogador").asText("")));
             case "SUBSTITUTION" -> new PlayAction.Substitution(
-                    det.path("jogador_out").asText(""),
-                    det.path("jogador_in").asText(""));
+                    playerNamed(det.path("jogador_out").asText("")),
+                    playerNamed(det.path("jogador_in").asText("")));
             default -> new PlayAction.Unknown(acao);
         };
+    }
+
+    /** Jogador só com nome (eventos de lance não trazem idade/posição no JSON). */
+    private static Player playerNamed(String name) {
+        return new Player(name, -1, null, "");
     }
 }

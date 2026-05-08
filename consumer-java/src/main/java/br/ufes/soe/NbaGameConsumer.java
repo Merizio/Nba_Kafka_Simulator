@@ -46,13 +46,17 @@ public final class NbaGameConsumer {
             System.out.println("Aguardando mensagens… (Ctrl+C para sair)\n");
 
             while (true) {
+                // poll para buscar os novos eventos
                 ConsumerRecords<String, String> records = consumer.poll(Duration.ofSeconds(1));
                 for (ConsumerRecord<String, String> record : records) {
+                    // record.value() é o valor da mensagem: JSON convertido para String que foi enviado pelo produtor
                     String raw = record.value();
                     if (raw == null) {
                         continue;
                     }
                     try {
+                        // parseToTree converte a String JSON em um objeto JsonNode
+                        // toEvent converte o JsonNode em um objeto NbaPrimitiveEvent
                         Optional<NbaPrimitiveEvent> parsed = parser.toEvent(parser.parseToTree(raw));
                         if (parsed.isEmpty()) {
                             System.err.println("[parse] mensagem sem tipo reconhecível offset=" + record.offset());
