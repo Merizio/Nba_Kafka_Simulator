@@ -38,28 +38,28 @@ public class OddsControlRules {
 
     private void lookScoreBoard(MatchPlayEvent e, Odds control) {
         System.out.printf(
-                "[EVENTO] quarto=%dm, placar=%s%n",
+                "[EVENTO] quarto=%d, placar=%s%n",
                 e.quarter(),
                 e.scoreboard());
 
-        String[] scores = e.scoreboard().split("-");
-        if (scores.length == 2) {
-            try {
-                int scoreA = Integer.parseInt(scores[0].trim());
-                int scoreB = Integer.parseInt(scores[1].trim());
+        String[] scores = e.scoreboard().split(" X ");
+        try {
+            String[] scoresA = scores[0].split(" ");
+            String[] scoresB = scores[1].split(" ");
+            int scoreA = Integer.parseInt(scoresA[1]);
+            int scoreB = Integer.parseInt(scoresB[0]);
 
-                //calcular se vai modificar as odds
-                OddsCalculator calc = new OddsCalculator();
+            //calcular se vai modificar as odds
+            OddsCalculator calc = new OddsCalculator();
 
-                calc.calculateOdds(e, control, scoreA, scoreB);
-                
-                System.out.printf("  [SCOREBOARD ATUALIZADO] %s: %d (%.2f)| %s: %d (%.2f)%n", 
-                control.getTeamA().getName(), scoreA, control.getOddsA(), 
-                control.getTeamB().getName(),scoreB, control.getOddsB());
+            calc.calculateOdds(e, control, scoreA, scoreB);
+            
+            System.out.printf("  [SCOREBOARD ATUALIZADO] %s: %d (%.2f)| %s: %d (%.2f)%n", 
+            control.getTeamA(), scoreA, control.getOddsA(), 
+            control.getTeamB(),scoreB, control.getOddsB());
 
-            } catch (NumberFormatException ex) {
-                System.err.printf("  [ERRO ao parsear placar] '%s' - %s%n", e.scoreboard(), ex.getMessage());
-            }
+        } catch (NumberFormatException ex) {
+            System.err.printf("  [ERRO ao parsear placar] '%s' - %s%n", e.scoreboard(), ex.getMessage());
         }
     }
 }

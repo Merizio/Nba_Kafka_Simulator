@@ -6,26 +6,26 @@ public class Odds {
     public Odds() {
     }
     public Odds(Team teamA, Team teamB, Double oddsA, Double oddsB) {
-        this.teamA = teamA;
-        this.teamB = teamB;
+        this.teamA = teamA.getName();
+        this.teamB = teamB.getName();
         this.oddsA = oddsA;
         this.oddsB = oddsB;
     }
     
-    private Team teamA;
-    private Team teamB;    
-    public Team getTeamA() {
+    private String teamA;
+    private String teamB;    
+    public String getTeamA() {
         return teamA;
     }
     public void setTeamA(Team teamA) {
-        this.teamA = teamA;
+        this.teamA = teamA.getName();
     }
 
-    public Team getTeamB() {
+    public String getTeamB() {
         return teamB;
     }
     public void setTeamB(Team teamB) {
-        this.teamB = teamB;
+        this.teamB = teamB.getName();
     }
 
     private Double oddsA, oddsB;
