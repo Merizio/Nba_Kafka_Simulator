@@ -2,19 +2,22 @@ package br.ufes.soe.rules;
 
 import br.ufes.soe.model.MatchState;
 import br.ufes.soe.model.NbaPrimitiveEvent;
+import br.ufes.soe.model.NbaPrimitiveEvent.MatchEndEvent;
 import br.ufes.soe.model.NbaPrimitiveEvent.MatchPlayEvent;
 import br.ufes.soe.model.NbaPrimitiveEvent.MatchStartEvent;
 import br.ufes.soe.model.NbaPrimitiveEvent.UnrecognizedEvent;
 import br.ufes.soe.model.PlayAction;
-import br.ufes.soe.model.Team;
+import br.ufes.view.StaticBoard;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
- * Regras de negócio e ações diante dos eventos primitivos já parseados.
+ * Regras de negócio: atualiza estado, placar ao vivo no terminal e relatório final.
  */
 public final class GameMonitoringRules {
 
     private final ObjectMapper mapper;
+    private final StaticBoard board = new StaticBoard();
+    private boolean liveBoardStarted;
 
     public GameMonitoringRules(ObjectMapper mapper) {
         this.mapper = mapper;
@@ -25,77 +28,55 @@ public final class GameMonitoringRules {
             onMatchStart(start, state);
         } else if (event instanceof MatchPlayEvent play) {
             onMatchPlay(play, state);
+        } else if (event instanceof MatchEndEvent end) {
+            onMatchEnd(end, state);
         } else if (event instanceof UnrecognizedEvent bad) {
             onUnrecognized(bad);
         }
     }
 
-    private void onMatchStart(MatchStartEvent e, MatchState state) throws Exception {
+    private void onMatchStart(MatchStartEvent e, MatchState state) {
         state.resetForNewMatch(e.match(), e.teams());
-        System.out.println("[INÍCIO DE PARTIDA] " + (e.match().isEmpty() ? "(sem campo match)" : e.match()));
-        for (Team team : e.teams()) {
-            System.out.printf(
-                    "  time: %s — titulares=%d, reservas=%d%n",
-                    team.getName(),
-                    team.getStarters().size(),
-                    team.getReserves().size());
+        if (!liveBoardStarted) {
+            board.startLiveSession();
+            liveBoardStarted = true;
         }
-        System.out.println(mapper.writerWithDefaultPrettyPrinter().writeValueAsString(e.sourcePayload()));
+        board.renderLive(state);
     }
 
     private void onMatchPlay(MatchPlayEvent e, MatchState state) {
+        state.updateFromPlacar(e.scoreboard());
+        state.setCurrentQuarter(e.quarter());
+
         PlayAction a = e.action();
-        System.out.printf(
-                "[EVENTO] quarto=%d time=%s placar=%s ação=%s%n",
-                e.quarter(),
-                e.teamName(),
-                e.scoreboard(),
-                actionLabel(a));
+        String possessionTeam = e.teamName();
 
         if (a instanceof PlayAction.Point p) {
-            System.out.printf("  → Cesta: %s (%d pts)%n", p.player().getName(), p.pointsValue());
-            p.player().IncrementPoints(p.pointsValue());
-
+            state.recordPoint(possessionTeam, p.player().getName(), p.pointsValue());
         } else if (a instanceof PlayAction.Foul f) {
-            f.committedBy().IncrementFouls();
-            System.out.printf(
-                    "  → Falta: %s (total neste jogador no estado local: %d)%n",
-                    f.committedBy().getName(),
-                    f.committedBy().getFouls());
-        } else if (a instanceof PlayAction.Turnover t) {
-            int total = state.incrementTurnoverAndGetTotal();
-            System.out.printf("  → Turnover #%d: %s%n", total, t.player().getName());
+            state.recordFoulCommitted(possessionTeam, f.committedBy().getName());
+        } else if (a instanceof PlayAction.Turnover) {
+            state.incrementTurnoverAndGetTotal();
         } else if (a instanceof PlayAction.Substitution s) {
-            System.out.printf(
-                    "  → Sub: sai %s, entra %s%n",
-                    s.playerOut().getName(),
-                    s.playerIn().getName());
-        } else if (a instanceof PlayAction.Unknown u) {
-            System.out.printf("  → Ação não mapeada: `%s`%n", u.rawActionKey());
+            state.applySubstitution(possessionTeam, s.playerOut().getName(), s.playerIn().getName());
         }
+
+        board.renderLive(state);
+    }
+
+    private void onMatchEnd(MatchEndEvent e, MatchState state) {
+        state.setMatchEnded(true);
+        String fin = e.finalScoreboard();
+        if (fin != null && !fin.isBlank()) {
+            state.updateFromPlacar(fin);
+        }
+        board.renderLive(state);
+        board.endLiveSession();
+        StaticBoard.printFinalReport(System.out, state);
     }
 
     private void onUnrecognized(UnrecognizedEvent e) throws Exception {
-        System.out.printf("[tipo desconhecido] %s%n", e.tipoHint());
-        System.out.println(mapper.writerWithDefaultPrettyPrinter().writeValueAsString(e.rawNode()));
-    }
-
-    private static String actionLabel(PlayAction a) {
-        if (a instanceof PlayAction.Point) {
-            return "POINT";
-        }
-        if (a instanceof PlayAction.Foul) {
-            return "FOUL";
-        }
-        if (a instanceof PlayAction.Turnover) {
-            return "TURNOVER";
-        }
-        if (a instanceof PlayAction.Substitution) {
-            return "SUBSTITUTION";
-        }
-        if (a instanceof PlayAction.Unknown u) {
-            return u.rawActionKey().isEmpty() ? "?" : u.rawActionKey();
-        }
-        return "?";
+        System.err.printf("[tipo desconhecido] %s%n", e.tipoHint());
+        System.err.println(mapper.writerWithDefaultPrettyPrinter().writeValueAsString(e.rawNode()));
     }
 }

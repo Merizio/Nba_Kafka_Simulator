@@ -1,6 +1,7 @@
 package br.ufes.soe.parse;
 
 import br.ufes.soe.model.NbaPrimitiveEvent;
+import br.ufes.soe.model.NbaPrimitiveEvent.MatchEndEvent;
 import br.ufes.soe.model.NbaPrimitiveEvent.MatchPlayEvent;
 import br.ufes.soe.model.NbaPrimitiveEvent.MatchStartEvent;
 import br.ufes.soe.model.NbaPrimitiveEvent.UnrecognizedEvent;
@@ -39,6 +40,7 @@ public final class NbaMessageParser {
         return switch (tipo) {
             case "INICIO" -> Optional.of(parseInicio(root));
             case "EVENTO" -> Optional.of(parseEvento(root));
+            case "FINAL" -> Optional.of(parseFinal(root));
             case "" -> Optional.empty();
             default -> Optional.of(new UnrecognizedEvent(tipo, root));
         };
@@ -82,6 +84,15 @@ public final class NbaMessageParser {
         JsonNode detalhes = root.path("detalhes");
         PlayAction action = parseDetalhes(detalhes);
         return new MatchPlayEvent(quarter, teamName, scoreboard, action);
+    }
+
+    /**
+     * Produtor (Dev_Francisco): {@code tipo FINAL} e placar completo no campo {@code match}
+     * ({@code TimeA pts X pts TimeB}).
+     */
+    private static MatchEndEvent parseFinal(JsonNode root) {
+        String placarLinha = root.path("match").asText("");
+        return new MatchEndEvent("", placarLinha, root);
     }
 
     /** Campos como no Python: {@code detalhes.ação}, {@code jogador}, etc. */

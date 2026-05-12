@@ -42,29 +42,24 @@ public final class NbaGameConsumer {
 
         try (KafkaConsumer<String, String> consumer = new KafkaConsumer<>(props)) {
             consumer.subscribe(Collections.singletonList(TOPIC));
-            System.out.printf("Consumindo tópico `%s` em %s (group=%s)%n", TOPIC, BOOTSTRAP, GROUP_ID);
-            System.out.println("Aguardando mensagens… (Ctrl+C para sair)\n");
+            System.err.printf(
+                    "Consumindo `%s` em %s (group=%s). O placar ao vivo usa o terminal (stdout).%n",
+                    TOPIC, BOOTSTRAP, GROUP_ID);
 
             while (true) {
-                // poll para buscar os novos eventos
                 ConsumerRecords<String, String> records = consumer.poll(Duration.ofSeconds(1));
                 for (ConsumerRecord<String, String> record : records) {
-                    // record.value() é o valor da mensagem: JSON convertido para String que foi enviado pelo produtor
                     String raw = record.value();
                     if (raw == null) {
                         continue;
                     }
                     try {
-                        // parseToTree converte a String JSON em um objeto JsonNode
-                        // toEvent converte o JsonNode em um objeto NbaPrimitiveEvent
                         Optional<NbaPrimitiveEvent> parsed = parser.toEvent(parser.parseToTree(raw));
                         if (parsed.isEmpty()) {
                             System.err.println("[parse] mensagem sem tipo reconhecível offset=" + record.offset());
                             continue;
                         }
-                        System.out.printf("--- offset=%d partition=%d%n", record.offset(), record.partition());
                         rules.apply(parsed.get(), state);
-                        System.out.println();
                     } catch (Exception e) {
                         System.err.println("[erro] offset=" + record.offset() + ": " + e.getMessage());
                     }
