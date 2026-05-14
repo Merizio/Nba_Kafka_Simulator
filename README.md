@@ -21,6 +21,7 @@ docker compose up -d
 docker compose ps
 ```
 
+<<<<<<< HEAD
 ---
 
 ## 2. Criar os tópicos da aplicação
@@ -145,3 +146,49 @@ mvn -pl odd-consumer-producer exec:java -Dexec.mainClass=br.ufes.soe.derived.Der
 ```
 
 (Crie o tópico `nba_game_derived` antes, se ainda não existir.)
+=======
+## Criar tópicos de execução
+1. Criar tópico de jogo:
+
+```bash
+docker exec -it kafka-1 /opt/kafka/bin/kafka-topics.sh \
+  --create --topic nba_game \
+  --bootstrap-server localhost:9092 \
+  --partitions 3 \
+  --replication-factor 3
+```
+
+2. Criar tópico de Odds:
+```bash
+docker exec -it kafka-1 /opt/kafka/bin/kafka-topics.sh \
+  --create --topic odds_game \
+  --bootstrap-server localhost:9092 \
+  --partitions 3 \
+  --replication-factor 3
+```
+
+3. Consumidor (em um terminal):
+
+Rodar o NbaGameConsumer
+
+4. Consumidor/Produtor (em um terminal):
+
+Rodar o OddConsumerProducer
+
+5. Produtor (em outro terminal):
+
+```bash
+python -m producer
+```
+
+## Parar o ambiente
+```bash
+docker compose down
+```
+
+Para remover também os volumes (dados):
+
+```bash
+docker compose down -v
+```
+>>>>>>> 3df8119277e15699ece6dd187843a3d716edec67
