@@ -2,9 +2,6 @@ package br.ufes.soe.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
-/**
- * Snapshot de odds publicado em {@code odds_game} (JSON do {@code Odds} no módulo odd-consumer-producer).
- */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public final class OddsPayload {
 

@@ -1,8 +1,6 @@
 package br.ufes.soe.model;
 
-/**
- * Jogador no modelo do consumidor (elenco no {@link Team} ou referência mínima em lances).
- */
+
 public final class Player {
     private final String name;
     private final int age;
