@@ -11,11 +11,10 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Painel ao vivo no terminal (ANSI): largura fixa entre barras, alinhamento monoespaçado.
+ * Painel ao vivo no terminal: largura fixa entre barras, alinhamento monoespaçado.
  */
 public final class StaticBoard {
 
-    /** Texto útil entre {@code ║} e {@code ║} (espaço + conteúdo + espaço = CONTENT_W + 2 no topo). */
     private static final int INNER_TEXT = 56;
 
     private static final String ANSI_HOME = "\033[H";
@@ -23,7 +22,6 @@ public final class StaticBoard {
     private static final String ANSI_SHOW_CURSOR = "\033[?25h";
     private static final String ANSI_HIDE_CURSOR = "\033[?25l";
 
-    /** Espaço horizontal interior entre cantos (alinha com cada linha {@code ║ … ║}). */
     private static final int INNER_FILL = INNER_TEXT + 2;
 
     public StaticBoard() {
@@ -92,7 +90,6 @@ public final class StaticBoard {
         }
     }
 
-    /** Uma linha de conteúdo: {@code ║ } + texto ({@link #INNER_TEXT} cols) + {@code  ║}. */
     private static void cell(StringBuilder sb, String text) {
         String body = truncate(text, INNER_TEXT);
         sb.append('║')

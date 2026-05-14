@@ -18,10 +18,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Properties;
 
-/**
- * Orquestra o cliente Kafka: assina os tópicos de partida e de odds, faz poll e delega parse
- * ({@link NbaMessageParser}) e regras ({@link GameMonitoringRules}).
- */
 
 /*
 Consumidor dos dois tópicos (nba_game, odds_game) que faz a geração do placar com as estatisticas
@@ -62,7 +58,6 @@ public final class NbaGameConsumer {
 
                     String raw = record.value();
                     if (raw == null) {
-                        // Pula para próxima iteração
                         continue;
                     }
 
