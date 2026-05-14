@@ -3,6 +3,11 @@ package br.ufes.soe.derived.model;
 import br.ufes.soe.model.Team;
 
 public class Odds {
+
+    private String teamA;
+    private String teamB;    
+    private Double oddsA, oddsB;
+
     public Odds() {
     }
     public Odds(Team teamA, Team teamB, Double oddsA, Double oddsB) {
@@ -12,8 +17,6 @@ public class Odds {
         this.oddsB = oddsB;
     }
     
-    private String teamA;
-    private String teamB;    
     public String getTeamA() {
         return teamA;
     }
@@ -27,8 +30,6 @@ public class Odds {
     public void setTeamB(Team teamB) {
         this.teamB = teamB.getName();
     }
-
-    private Double oddsA, oddsB;
     
     public Double getOddsA() {
         return oddsA;
@@ -41,6 +42,10 @@ public class Odds {
     }
     public void setOddsB(Double oddsB) {
         this.oddsB = oddsB;
+    }
+
+    public void printOdds() {
+        System.out.printf("%s: %f.2 X %s: %f.2", teamA, oddsA, teamB, oddsB);
     }
 }
 
