@@ -51,6 +51,11 @@ public final class StaticBoard {
         String scoreLine = formatScoreRow(names.teamHome(), hs, as, names.teamAway());
         cell(sb, scoreLine);
 
+        if (state.hasOddsSnapshot()) {
+            hRule(sb, '╠', '═', '╣');
+            cell(sb, formatOddsLine(state));
+        }
+
         hRule(sb, '╠', '═', '╣');
 
         int q = state.getCurrentQuarter();
@@ -113,6 +118,15 @@ public final class StaticBoard {
         return " " + truncate(core, INNER_TEXT);
     }
 
+    private static String formatOddsLine(MatchState state) {
+        String la = truncate(nz(state.getOddsLabelTeamA()), 16);
+        String lb = truncate(nz(state.getOddsLabelTeamB()), 16);
+        String core = String.format(
+                "Odds  %s  %.2f  ×  %.2f  %s",
+                la, state.getOddsValueA(), state.getOddsValueB(), lb);
+        return " " + truncate(core, INNER_TEXT);
+    }
+
     private static String padCenter(String s, int width) {
         String t = truncate(s, width);
         if (t.length() >= width) {
@@ -142,17 +156,9 @@ public final class StaticBoard {
     public static void printFinalReport(PrintStream out, MatchState state) {
         out.println();
         hRulePlain(out, '╔', '═', '╗');
-        plainCell(out, padCenter("FIM DE PARTIDA — RESUMO", INNER_TEXT));
+        plainCell(out, padCenter("FIM DE PARTIDA — ESTATÍSTICAS", INNER_TEXT));
         hRulePlain(out, '╠', '═', '╣');
 
-        Names n = fitTeamNames(state);
-        plainCell(out, " Confronto: " + truncate(nz(state.getMatchTitle()), INNER_TEXT - 13));
-        plainCell(out, String.format(
-                " Placar: %s %d  ×  %d %s",
-                truncate(n.teamHome(), 18),
-                state.getScoreHome(),
-                state.getScoreAway(),
-                truncate(n.teamAway(), 18)));
         plainCell(out, " Turnovers (total): " + state.getTurnoverCount());
 
         hRulePlain(out, '╠', '═', '╣');

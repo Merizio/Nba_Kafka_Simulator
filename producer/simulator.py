@@ -4,6 +4,7 @@ import random
 import time as tempo
 import json
 import sys
+from pathlib import Path
 from confluent_kafka import Producer
 
 """
@@ -25,8 +26,11 @@ cfg = {
 }
 prod = Producer(cfg)
 
+_REPO_ROOT = Path(__file__).resolve().parent.parent
+_CSV_PATH = _REPO_ROOT / "data" / "list_nba_players.csv"
+
 #ESCOLHA DOS TIMES PARA O SIMULADOR
-csv=pd.read_csv("./data/list_nba_players.csv")
+csv = pd.read_csv(_CSV_PATH)
 
 csv = csv.drop(columns=csv.columns[0])
 
@@ -175,4 +179,4 @@ prod.flush()
 
 #STATUS FINAL DA PARTIDA
 print("\nFinal de Partida!\nEstatísticas Finais:\n")
-manipulator.exibir_partida(time_A, time_B)
+manipulator.exibir_estatisticas_times(time_A, time_B)

@@ -29,6 +29,12 @@ public final class MatchState {
 
     private int turnoverCount;
 
+    /** Último snapshot vindo de {@code odds_game} (pode chegar antes ou depois do início da partida). */
+    private String oddsLabelTeamA = "";
+    private String oddsLabelTeamB = "";
+    private Double oddsValueA;
+    private Double oddsValueB;
+
     public boolean isMatchEnded() {
         return matchEnded;
     }
@@ -65,6 +71,33 @@ public final class MatchState {
         return currentQuarter;
     }
 
+    public boolean hasOddsSnapshot() {
+        return oddsValueA != null && oddsValueB != null;
+    }
+
+    public String getOddsLabelTeamA() {
+        return oddsLabelTeamA;
+    }
+
+    public String getOddsLabelTeamB() {
+        return oddsLabelTeamB;
+    }
+
+    public double getOddsValueA() {
+        return oddsValueA != null ? oddsValueA : 0d;
+    }
+
+    public double getOddsValueB() {
+        return oddsValueB != null ? oddsValueB : 0d;
+    }
+
+    public void updateOddsFromPayload(String teamA, String teamB, Double oddsA, Double oddsB) {
+        this.oddsLabelTeamA = teamA != null ? teamA : "";
+        this.oddsLabelTeamB = teamB != null ? teamB : "";
+        this.oddsValueA = oddsA;
+        this.oddsValueB = oddsB;
+    }
+
     public void resetForNewMatch(String title, List<Team> matchTeams) {
         matchTitle = title != null ? title : "";
         teams = matchTeams != null ? new ArrayList<>(matchTeams) : new ArrayList<>();
@@ -77,6 +110,10 @@ public final class MatchState {
         pointsByTeamPlayer.clear();
         foulsByTeamPlayer.clear();
         turnoverCount = 0;
+        oddsLabelTeamA = "";
+        oddsLabelTeamB = "";
+        oddsValueA = null;
+        oddsValueB = null;
 
         parseTeamsOrderFromMatchTitle();
         if (teams.size() >= 2 && (teamHomeName.isEmpty() || teamAwayName.isEmpty())) {

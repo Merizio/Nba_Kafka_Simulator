@@ -5,38 +5,44 @@ import br.ufes.soe.model.NbaPrimitiveEvent.MatchPlayEvent;
 
 public class OddsCalculator {
 
-    public void calculateOdds(MatchPlayEvent e, Odds control, int scoreA, int scoreB){
-        Integer scoreDiff = (int) (scoreA-scoreB);
-        double probA = calcularWinProbability(scoreDiff, e.quarter());
-        double probB = (1.0-probA);
+    /**
+     * Margem antes de inverter para odd decimal: sem isso a sigmóide encosta na capa máxima
+     * ({@code 1/p → teto}), e valores “grudados” em 10,00 parecem não reagirem ao placar.
+     */
+    private static final double PROB_EPS = 0.06;
 
-        control.setOddsA(calculaOddFinal(probA));
-        control.setOddsB(calculaOddFinal(probB));
-    };
+    private static final double MIN_DECIMAL_ODD = 1.01;
+    private static final double MAX_DECIMAL_ODD = 24.99;
 
+    public void calculateOdds(MatchPlayEvent e, Odds control, int scoreA, int scoreB) {
+        int scoreDiff = scoreA - scoreB;
+        double rawProbA = calcularWinProbability(scoreDiff, e.quarter());
+        double probA = clamp(rawProbA);
+        double probB = 1.0 - probA;
+
+        control.setOddsA(toDecimalOdd(probA));
+        control.setOddsB(toDecimalOdd(probB));
+    }
 
     public double calcularWinProbability(int scoreDiff, int quarter) {
-
         double pesoQuarto = switch (quarter) {
-        case 1 -> 0.025;
-        case 2 -> 0.05;
-        case 3 -> 0.075;
-        case 4 -> 0.10;
-        default -> 0.05;
+            case 1 -> 0.025;
+            case 2 -> 0.05;
+            case 3 -> 0.075;
+            case 4 -> 0.10;
+            default -> 0.05;
         };
 
         double spreadLead = 1 / (1 + Math.exp(-(scoreDiff * pesoQuarto)));
-        return spreadLead; // Usa uma função sigmóide para manter entre 0 e 1
+        return spreadLead;
     }
 
-    public double calculaOddFinal(double probability){
-        double prob = 1/(probability);
-        if (prob>10){
-            return 10;
-        }else if(prob<1){
-            return 1.01;
-        }else{
-            return prob;
-        }
+    private static double clamp(double p) {
+        return Math.min(1.0 - PROB_EPS, Math.max(PROB_EPS, p));
+    }
+
+    private static double toDecimalOdd(double winProbability) {
+        double decimal = 1.0 / winProbability;
+        return Math.min(MAX_DECIMAL_ODD, Math.max(MIN_DECIMAL_ODD, decimal));
     }
 }

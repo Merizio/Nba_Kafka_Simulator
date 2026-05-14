@@ -54,6 +54,12 @@ def escolher_times(nba):
 
     return t1, t2
 
+def exibir_estatisticas_times(time1, time2):
+    """Apenas elencos com pontuação por jogador (sem linha do placar da partida)."""
+    time1.exibir_time()
+    time2.exibir_time()
+
+
 def exibir_partida(time1, time2):
     print(f"PARTIDA DE HOJE:{' '*2}{time1.nome} {time1.pontos} X {time2.pontos} {time2.nome}")
     time1.exibir_time()

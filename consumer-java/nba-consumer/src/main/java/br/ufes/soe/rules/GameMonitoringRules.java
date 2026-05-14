@@ -2,6 +2,7 @@ package br.ufes.soe.rules;
 
 import br.ufes.soe.model.MatchState;
 import br.ufes.soe.model.NbaPrimitiveEvent;
+import br.ufes.soe.model.OddsPayload;
 import br.ufes.soe.model.NbaPrimitiveEvent.MatchEndEvent;
 import br.ufes.soe.model.NbaPrimitiveEvent.MatchPlayEvent;
 import br.ufes.soe.model.NbaPrimitiveEvent.MatchStartEvent;
@@ -32,6 +33,17 @@ public final class GameMonitoringRules {
             onMatchEnd(end, state);
         } else if (event instanceof UnrecognizedEvent bad) {
             onUnrecognized(bad);
+        }
+    }
+
+    /** Atualiza snapshot de odds (tópico {@code odds_game}) e redesenha o painel se a sessão ao vivo já começou. */
+    public void applyOddsUpdate(OddsPayload odds, MatchState state) {
+        if (odds == null) {
+            return;
+        }
+        state.updateOddsFromPayload(odds.getTeamA(), odds.getTeamB(), odds.getOddsA(), odds.getOddsB());
+        if (liveBoardStarted) {
+            board.renderLive(state);
         }
     }
 
@@ -70,7 +82,6 @@ public final class GameMonitoringRules {
         if (fin != null && !fin.isBlank()) {
             state.updateFromPlacar(fin);
         }
-        board.renderLive(state);
         board.endLiveSession();
         StaticBoard.printFinalReport(System.out, state);
     }

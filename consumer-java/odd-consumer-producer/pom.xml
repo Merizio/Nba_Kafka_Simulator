@@ -32,7 +32,7 @@
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
                 <configuration>
-                    <mainClass>br.ufes.soe.derived.DerivedMonitorMain</mainClass>
+                    <mainClass>br.ufes.soe.derived.OddConsumerProducer</mainClass>
                 </configuration>
             </plugin>
         </plugins>

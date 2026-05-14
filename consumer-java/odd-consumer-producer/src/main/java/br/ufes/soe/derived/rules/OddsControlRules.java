@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import br.ufes.soe.derived.model.Odds;
 import br.ufes.soe.model.MatchState;
 import br.ufes.soe.model.NbaPrimitiveEvent;
+import br.ufes.soe.model.NbaPrimitiveEvent.MatchEndEvent;
 import br.ufes.soe.model.NbaPrimitiveEvent.MatchPlayEvent;
 import br.ufes.soe.model.NbaPrimitiveEvent.MatchStartEvent;
 import br.ufes.soe.model.Team;
@@ -15,8 +16,10 @@ public class OddsControlRules {
     public void apply(NbaPrimitiveEvent event, MatchState state, Odds control) throws Exception {
         if (event instanceof MatchPlayEvent play) {
             lookScoreBoard(play, control);
-        }else if (event instanceof MatchStartEvent start) {
+        } else if (event instanceof MatchStartEvent start) {
             startMatch(start, state, control);
+        } else if (event instanceof MatchEndEvent end) {
+            System.out.printf("[FIM DA PARTIDA] %s%n", end.finalScoreboard());
         }
     }
 

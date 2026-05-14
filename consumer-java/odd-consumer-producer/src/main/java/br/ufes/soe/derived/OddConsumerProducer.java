@@ -33,7 +33,8 @@ public final class OddConsumerProducer {
     private static final String BOOTSTRAP = "localhost:19092";
     private static final String CONSUMERTOPIC = "nba_game";
     private static final String PRODUCERTOPIC = "odds_game";
-    private static final String GROUP_ID = "nba-monitor-grupo";
+    /** Grupo distinto do {@code NbaGameConsumer} para que ambos leiam o stream completo de {@code nba_game}. */
+    private static final String GROUP_ID = "odds-pipeline-grupo";
 
 
     public static void main(String[] args) throws Exception {
@@ -96,12 +97,24 @@ public final class OddConsumerProducer {
                         System.out.println();
 
                         String jsonOdds = mapper.writeValueAsString(apostas);
-                        producer.send(new ProducerRecord<>(PRODUCERTOPIC, jsonOdds));
+                        producer.send(
+                                new ProducerRecord<>(PRODUCERTOPIC, jsonOdds),
+                                (metadata, err) -> {
+                                    if (err != null) {
+                                        System.err.println("[odds_game] falha ao enviar: " + err);
+                                    } else {
+                                        System.err.printf(
+                                                "[odds_game] enviado partition=%d offset=%d%n",
+                                                metadata.partition(),
+                                                metadata.offset());
+                                    }
+                                });
                     } catch (Exception e) {
                         System.err.println("[erro] offset=" + record.offset() + ": " + e.getMessage());
                     }
                 }
                 producer.flush();
+                System.out.flush();
             }
         }
     }
