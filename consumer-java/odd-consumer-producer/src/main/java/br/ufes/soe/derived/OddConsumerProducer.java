@@ -67,15 +67,12 @@ public final class OddConsumerProducer {
             KafkaProducer<String, String> producer = new KafkaProducer<>(producer_props)) {
 
             consumer.subscribe(Collections.singletonList(CONSUMERTOPIC));
-            System.out.printf("Consumindo tópico `%s` em %s (group=%s) para %s%n", CONSUMERTOPIC, BOOTSTRAP, GROUP_ID, PRODUCERTOPIC);
-            System.out.println("Aguardando mensagens… (Ctrl+C para sair)\n");
+            System.out.printf("\nTópico(Consumido): `%s`\nServer: %s (group=%s)\nTópico(Produzido): `%s`%n", CONSUMERTOPIC, BOOTSTRAP, GROUP_ID, PRODUCERTOPIC);
+            System.out.println("Aguardando mensagens…\n");
 
-            //loop de consumo
             while (true) {
-                // poll para buscar os novos eventos
                 ConsumerRecords<String, String> records = consumer.poll(Duration.ofSeconds(1));
                 for (ConsumerRecord<String, String> record : records) {
-                    // record.value() é o valor da mensagem: JSON convertido para String que foi enviado pelo produtor
                     String raw = record.value();
                     if (raw == null) {
                         continue;
@@ -94,9 +91,10 @@ public final class OddConsumerProducer {
 
                         //rules.apply(parsed.get(), state);
                         regras.apply(parsed.get(), state, apostas);
-                        System.out.println();
-
+    
                         String jsonOdds = mapper.writeValueAsString(apostas);
+                        /* */
+                        System.out.println(jsonOdds);
                         producer.send(
                                 new ProducerRecord<>(PRODUCERTOPIC, jsonOdds),
                                 (metadata, err) -> {

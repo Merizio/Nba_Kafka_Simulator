@@ -1,7 +1,7 @@
 package br.ufes.soe.model;
 
 /**
- * Ação dentro de um evento de jogo ({@link NbaPrimitiveEvent.MatchPlayEvent}), após o parse do campo {@code detalhes}.
+ * Ação dentro de um evento de jogo NbaPrimitiveEvent MatchPlayEvent
  */
 public sealed interface PlayAction permits PlayAction.Point, PlayAction.Foul, PlayAction.Turnover, PlayAction.Substitution, PlayAction.Unknown {
 

@@ -9,9 +9,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-/**
- * Estado da partida: placar, elenco, estatísticas e parsing do texto {@code placar} do produtor.
- */
 public final class MatchState {
     private static final String PT_SEP = "\u0001";
 
@@ -29,7 +26,6 @@ public final class MatchState {
 
     private int turnoverCount;
 
-    /** Último snapshot vindo de {@code odds_game} (pode chegar antes ou depois do início da partida). */
     private String oddsLabelTeamA = "";
     private String oddsLabelTeamB = "";
     private Double oddsValueA;
@@ -91,6 +87,7 @@ public final class MatchState {
         return oddsValueB != null ? oddsValueB : 0d;
     }
 
+    /* Atualiza as odds após fazer o parse do evento vindo de odds_game */
     public void updateOddsFromPayload(String teamA, String teamB, Double oddsA, Double oddsB) {
         this.oddsLabelTeamA = teamA != null ? teamA : "";
         this.oddsLabelTeamB = teamB != null ? teamB : "";
@@ -98,6 +95,7 @@ public final class MatchState {
         this.oddsValueB = oddsB;
     }
 
+    /* Limpa os dados para o início de uma nova partida */
     public void resetForNewMatch(String title, List<Team> matchTeams) {
         matchTitle = title != null ? title : "";
         teams = matchTeams != null ? new ArrayList<>(matchTeams) : new ArrayList<>();
@@ -122,7 +120,6 @@ public final class MatchState {
         }
     }
 
-    /** Espera formato do produtor: {@code TimeA pontosA X pontosB TimeB}. */
     public void updateFromPlacar(String placar) {
         ParsedBi parsed = ParsedBi.tryParse(placar);
         if (parsed == null) {
@@ -208,7 +205,6 @@ public final class MatchState {
         return new HashMap<>(pointsByTeamPlayer);
     }
 
-    /** Melhores {@code limit} jogadores do time por pontos ({@code nome -> pts}). */
     public List<Map.Entry<String, Integer>> topScorersForTeam(String teamName, int limit) {
         if (teamName == null || teamName.isEmpty()) {
             return List.of();
@@ -279,7 +275,6 @@ public final class MatchState {
         return null;
     }
 
-    /** Parsing robusto do placar texto do Python: {@code TimeEsquerda ptsEsquerda X ptsDireita TimeDireita}. */
     record ParsedBi(String teamHome, int scoreHome, String teamAway, int scoreAway) {
         static ParsedBi tryParse(String placar) {
             if (placar == null || placar.isBlank()) {
@@ -307,7 +302,6 @@ public final class MatchState {
             return new ParsedBi(teamHomeNameLocal, scoreHomeLocal, teamAwayNameLocal, scoreAwayLocal);
         }
 
-        /** {@code left} como "{nome} {pts}" — último token inteiro é pontuação. */
         private static Optional<int[]> scoreTrailing(String left) {
             int sp = left.lastIndexOf(' ');
             if (sp <= 0 || sp >= left.length() - 1) {
@@ -321,7 +315,6 @@ public final class MatchState {
             }
         }
 
-        /** {@code right} como "{pts} {nome}" — primeiro token inteiro é pontuação. */
         private static Optional<int[]> scoreLeading(String right) {
             int sp = right.indexOf(' ');
             if (sp <= 0 || sp >= right.length() - 1) {

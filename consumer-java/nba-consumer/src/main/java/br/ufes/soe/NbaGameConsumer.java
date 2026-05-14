@@ -22,8 +22,13 @@ import java.util.Properties;
  * Orquestra o cliente Kafka: assina os tópicos de partida e de odds, faz poll e delega parse
  * ({@link NbaMessageParser}) e regras ({@link GameMonitoringRules}).
  */
+
+/*
+Consumidor dos dois tópicos (nba_game, odds_game) que faz a geração do placar com as estatisticas
+*/
 public final class NbaGameConsumer {
 
+    /* Definindo constantes para config */
     private static final String BOOTSTRAP = "localhost:19092";
     private static final String TOPIC_GAME = "nba_game";
     private static final String TOPIC_ODDS = "odds_game";
@@ -31,6 +36,8 @@ public final class NbaGameConsumer {
     private static final String GROUP_ID = "nba-monitor-grupo";
 
     public static void main(String[] args) throws Exception {
+
+        /* Configurações do Consumidor NbaGameConsumer */
         Properties props = new Properties();
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, BOOTSTRAP);
         props.put(ConsumerConfig.GROUP_ID_CONFIG, GROUP_ID);
@@ -39,6 +46,7 @@ public final class NbaGameConsumer {
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true");
 
+
         ObjectMapper mapper = new ObjectMapper();
         NbaMessageParser parser = new NbaMessageParser(mapper);
         GameMonitoringRules rules = new GameMonitoringRules(mapper);
@@ -46,40 +54,36 @@ public final class NbaGameConsumer {
 
         try (KafkaConsumer<String, String> consumer = new KafkaConsumer<>(props)) {
             consumer.subscribe(TOPICS);
-            System.err.printf(
-                    "Consumindo `%s` e `%s` em %s (group=%s). O placar ao vivo usa o terminal (stdout).%n",
-                    TOPIC_GAME, TOPIC_ODDS, BOOTSTRAP, GROUP_ID);
-
+            System.err.printf("\nTópicos(Consumidos): `%s` e `%s`\nServer: %s (group=%s)\n", TOPIC_GAME, TOPIC_ODDS, BOOTSTRAP, GROUP_ID);
+            System.out.println("Aguardando mensagens…\n");
             while (true) {
                 ConsumerRecords<String, String> records = consumer.poll(Duration.ofSeconds(1));
                 for (ConsumerRecord<String, String> record : records) {
+
                     String raw = record.value();
                     if (raw == null) {
+                        // Pula para próxima iteração
                         continue;
                     }
+
                     String topic = record.topic();
+                    
                     try {
+                        /* Caso o topico do evento seja odds_game, atualiza as odds e redesenha o painel */
                         if (TOPIC_ODDS.equals(topic)) {
                             OddsPayload odds = mapper.readValue(raw, OddsPayload.class);
                             rules.applyOddsUpdate(odds, state);
                             continue;
                         }
-                        if (!TOPIC_GAME.equals(topic)) {
-                            continue;
-                        }
+
+                        /* Caso seja topico nba_game */
                         Optional<NbaPrimitiveEvent> parsed = parser.toEvent(parser.parseToTree(raw));
-                        if (parsed.isEmpty()) {
-                            System.err.println(
-                                    "[parse] mensagem sem tipo reconhecível topic="
-                                            + topic
-                                            + " offset="
-                                            + record.offset());
-                            continue;
-                        }
+            
+                        if (parsed.isEmpty()) continue;
                         rules.apply(parsed.get(), state);
+
                     } catch (Exception e) {
-                        System.err.println(
-                                "[erro] topic=" + topic + " offset=" + record.offset() + ": " + e.getMessage());
+                        System.err.println("[erro] topic=" + topic + " offset=" + record.offset() + ": " + e.getMessage());
                     }
                 }
             }

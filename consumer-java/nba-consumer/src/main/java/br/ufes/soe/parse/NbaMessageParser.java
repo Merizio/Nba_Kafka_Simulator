@@ -4,7 +4,6 @@ import br.ufes.soe.model.NbaPrimitiveEvent;
 import br.ufes.soe.model.NbaPrimitiveEvent.MatchEndEvent;
 import br.ufes.soe.model.NbaPrimitiveEvent.MatchPlayEvent;
 import br.ufes.soe.model.NbaPrimitiveEvent.MatchStartEvent;
-import br.ufes.soe.model.NbaPrimitiveEvent.UnrecognizedEvent;
 import br.ufes.soe.model.PlayAction;
 import br.ufes.soe.model.Player;
 import br.ufes.soe.model.Team;
@@ -17,9 +16,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Traduz o payload JSON do produtor em {@link NbaPrimitiveEvent}. Sem regras de negócio.
- */
 public final class NbaMessageParser {
 
     private final ObjectMapper mapper;
@@ -41,13 +37,19 @@ public final class NbaMessageParser {
             case "INICIO" -> Optional.of(parseInicio(root));
             case "EVENTO" -> Optional.of(parseEvento(root));
             case "FINAL" -> Optional.of(parseFinal(root));
-            case "" -> Optional.empty();
-            default -> Optional.of(new UnrecognizedEvent(tipo, root));
+            default -> Optional.empty();
         };
     }
 
+    /*
+        Funções privates da parser para lidar com Evento de Inicio, Play e End.
+    */
+
+
     /**
-     * JSON do produtor: {@code titulares} / {@code reservas} são arrays de <strong>nomes</strong> (strings).
+     * 
+     * @param root JsonNode com as informações do evento
+     * @return NbaPrimitiveEvent MatchStartEvent que guarda 
      */
     private static MatchStartEvent parseInicio(JsonNode root) {
         String match = root.path("match").asText("");
@@ -86,16 +88,11 @@ public final class NbaMessageParser {
         return new MatchPlayEvent(quarter, teamName, scoreboard, action);
     }
 
-    /**
-     * Produtor (Dev_Francisco): {@code tipo FINAL} e placar completo no campo {@code match}
-     * ({@code TimeA pts X pts TimeB}).
-     */
     private static MatchEndEvent parseFinal(JsonNode root) {
         String placarLinha = root.path("match").asText("");
         return new MatchEndEvent("", placarLinha, root);
     }
 
-    /** Campos como no Python: {@code detalhes.ação}, {@code jogador}, etc. */
     private static PlayAction parseDetalhes(JsonNode det) {
         if (det == null || det.isNull() || det.isMissingNode()) {
             return new PlayAction.Unknown("");
@@ -116,7 +113,6 @@ public final class NbaMessageParser {
         };
     }
 
-    /** Jogador só com nome (eventos de lance não trazem idade/posição no JSON). */
     private static Player playerNamed(String name) {
         return new Player(name, -1, null, "");
     }

@@ -6,7 +6,6 @@ import br.ufes.soe.model.OddsPayload;
 import br.ufes.soe.model.NbaPrimitiveEvent.MatchEndEvent;
 import br.ufes.soe.model.NbaPrimitiveEvent.MatchPlayEvent;
 import br.ufes.soe.model.NbaPrimitiveEvent.MatchStartEvent;
-import br.ufes.soe.model.NbaPrimitiveEvent.UnrecognizedEvent;
 import br.ufes.soe.model.PlayAction;
 import br.ufes.view.StaticBoard;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -25,28 +24,25 @@ public final class GameMonitoringRules {
     }
 
     public void apply(NbaPrimitiveEvent event, MatchState state) throws Exception {
+
         if (event instanceof MatchStartEvent start) {
             onMatchStart(start, state);
         } else if (event instanceof MatchPlayEvent play) {
             onMatchPlay(play, state);
         } else if (event instanceof MatchEndEvent end) {
             onMatchEnd(end, state);
-        } else if (event instanceof UnrecognizedEvent bad) {
-            onUnrecognized(bad);
         }
     }
 
-    /** Atualiza snapshot de odds (tópico {@code odds_game}) e redesenha o painel se a sessão ao vivo já começou. */
+    /* Atualiza as odds e redesenha o painel */
     public void applyOddsUpdate(OddsPayload odds, MatchState state) {
-        if (odds == null) {
-            return;
-        }
         state.updateOddsFromPayload(odds.getTeamA(), odds.getTeamB(), odds.getOddsA(), odds.getOddsB());
         if (liveBoardStarted) {
             board.renderLive(state);
         }
     }
 
+    /* Métodos privates que lidam com os NbaPrimitiveEvent */
     private void onMatchStart(MatchStartEvent e, MatchState state) {
         state.resetForNewMatch(e.match(), e.teams());
         if (!liveBoardStarted) {
@@ -84,10 +80,5 @@ public final class GameMonitoringRules {
         }
         board.endLiveSession();
         StaticBoard.printFinalReport(System.out, state);
-    }
-
-    private void onUnrecognized(UnrecognizedEvent e) throws Exception {
-        System.err.printf("[tipo desconhecido] %s%n", e.tipoHint());
-        System.err.println(mapper.writerWithDefaultPrettyPrinter().writeValueAsString(e.rawNode()));
     }
 }
