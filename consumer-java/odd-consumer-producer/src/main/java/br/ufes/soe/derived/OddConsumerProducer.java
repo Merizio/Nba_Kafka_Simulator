@@ -24,16 +24,11 @@ import br.ufes.soe.model.NbaPrimitiveEvent;
 import br.ufes.soe.parse.NbaMessageParser;
 import br.ufes.soe.rules.GameMonitoringRules;
 
-/**
- * Orquestra o cliente Kafka: assina o tópico, faz poll e delega parse ({@link NbaMessageParser})
- * e regras ({@link GameMonitoringRules}).
- */
 public final class OddConsumerProducer {
 
     private static final String BOOTSTRAP = "localhost:19092";
     private static final String CONSUMERTOPIC = "nba_game";
     private static final String PRODUCERTOPIC = "odds_game";
-    /** Grupo distinto do {@code NbaGameConsumer} para que ambos leiam o stream completo de {@code nba_game}. */
     private static final String GROUP_ID = "odds-pipeline-grupo";
 
 
@@ -78,23 +73,19 @@ public final class OddConsumerProducer {
                         continue;
                     }
                     try {
-                        // parseToTree converte a String JSON em um objeto JsonNode
-                        // toEvent converte o JsonNode em um objeto NbaPrimitiveEvent
                         Optional<NbaPrimitiveEvent> parsed = parser.toEvent(parser.parseToTree(raw));
                         if (parsed.isEmpty()) {
                             System.err.println("[parse] mensagem sem tipo reconhecível offset=" + record.offset());
                             continue;
                         }
-                        System.out.printf("--- offset=%d partition=%d%n", record.offset(), record.partition());
 
                        
-
-                        //rules.apply(parsed.get(), state);
                         regras.apply(parsed.get(), state, apostas);
+                        apostas.printOdds();
+
     
                         String jsonOdds = mapper.writeValueAsString(apostas);
-                        /* */
-                        System.out.println(jsonOdds);
+
                         producer.send(
                                 new ProducerRecord<>(PRODUCERTOPIC, jsonOdds),
                                 (metadata, err) -> {
