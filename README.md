@@ -17,35 +17,39 @@ Verifique se os 3 containers estão no ar:
 docker compose ps
 ```
 
-## Teste rápido (criar tópico, produzir e consumir)
-1. Criar um tópico:
+## Criar tópicos de execução
+1. Criar tópico de jogo:
 
 ```bash
 docker exec -it kafka-1 /opt/kafka/bin/kafka-topics.sh \
-  --create --topic lab-topico --partitions 3 --replication-factor 3 \
-  --bootstrap-server localhost:9092
+  --create --topic nba_game \
+  --bootstrap-server localhost:9092 \
+  --partitions 3 \
+  --replication-factor 3
 ```
 
-2. Consumidor (em um terminal):
+2. Criar tópico de Odds:
+```bash
+docker exec -it kafka-1 /opt/kafka/bin/kafka-topics.sh \
+  --create --topic odds_game \
+  --bootstrap-server localhost:9092 \
+  --partitions 3 \
+  --replication-factor 3
+```
+
+3. Consumidor (em um terminal):
+
+Rodar o NbaGameConsumer
+
+4. Consumidor/Produtor (em um terminal):
+
+Rodar o OddConsumerProducer
+
+5. Produtor (em outro terminal):
 
 ```bash
-docker exec -it kafka-1 /opt/kafka/bin/kafka-console-consumer.sh \
-  --topic lab-topico --from-beginning --bootstrap-server localhost:9092
+python -m producer
 ```
-
-3. Produtor (em outro terminal):
-
-```bash
-docker exec -it kafka-1 /opt/kafka/bin/kafka-console-producer.sh \
-  --topic lab-topico --bootstrap-server localhost:9092
-```
-
-Digite mensagens no produtor e veja chegando no consumidor.
-
-## Bootstrap servers para clientes externos
-- `localhost:19092`
-- `localhost:29092`
-- `localhost:39092`
 
 ## Parar o ambiente
 ```bash

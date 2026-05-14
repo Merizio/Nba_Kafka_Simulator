@@ -1,0 +1,16 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Run NBA Consumer",
+      "type": "shell",
+      "command": "mvn",
+      "args": ["-q", "-pl", "nba-consumer", "exec:java"],
+      "options": {
+        "cwd": "${workspaceFolder}/consumer-java"
+      },
+      "group": "build",
+      "problemMatcher": []
+    }
+  ]
+}
