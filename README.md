@@ -115,33 +115,3 @@ Para apagar também volumes (dados dos brokers):
 ```bash
 docker compose down -v
 ```
-
----
-
-## Teste rápido só com Kafka (console)
-
-Exemplo com um tópico de laboratório `lab-topico`:
-
-```bash
-docker exec -it kafka-1 /opt/kafka/bin/kafka-topics.sh \
-  --create --topic lab-topico --partitions 3 --replication-factor 3 \
-  --bootstrap-server localhost:9092
-
-docker exec -it kafka-1 /opt/kafka/bin/kafka-console-consumer.sh \
-  --topic lab-topico --from-beginning --bootstrap-server localhost:9092
-```
-
-Em outro terminal, produtor console no mesmo tópico.
-
----
-
-## Opcional: relay de eventos derivados (`DerivedMonitorMain`)
-
-O módulo `odd-consumer-producer` também contém `br.ufes.soe.derived.DerivedMonitorMain` (tópico de saída `nba_game_derived`), que **não** faz parte do fluxo principal odds acima. Para executá-lo sobrescreva a classe principal:
-
-```bash
-cd consumer-java
-mvn -pl odd-consumer-producer exec:java -Dexec.mainClass=br.ufes.soe.derived.DerivedMonitorMain
-```
-
-(Crie o tópico `nba_game_derived` antes, se ainda não existir.)
