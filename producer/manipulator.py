@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import random
 
 class Jogador:
@@ -40,7 +41,42 @@ class Time:
         return [n.Player for n in self.titulares]
     def exibir_resevas(self):
         return [n.Player for n in self.reservas]
+    
+    
+def escolher_times_season(nba, qtd):
+    ts = pd.Series(nba["Team"].unique()).sample(qtd)
+    times = [Time(i, nba[nba["Team"] == i]) for i in ts]
 
+    return times
+
+def gerar_confrontos(qtd):
+    num_times = qtd
+    times = list(range(num_times))
+    if num_times % 2 != 0:
+        times.append(None)
+        num_times += 1
+
+    num_rodadas = num_times - 1
+    metade = num_times // 2
+    campeonato = list()
+
+    for rodada in range(num_rodadas):
+        confrontos_da_rodada = []
+        
+        for i in range(metade):
+            time_casa = times[i]
+            time_fora = times[num_times - 1 - i]
+            
+            # Só adiciona o confronto se nenhum dos times for a "folga"
+            if time_casa is not None and time_fora is not None:
+                confrontos_da_rodada.append((time_casa, time_fora))
+                
+        campeonato.append(confrontos_da_rodada)
+        
+        # Rotaciona os times (fixa o primeiro elemento e gira o resto)
+        times = [times[0]] + [times[-1]] + times[1:-1]
+
+    return np.array(campeonato)
 
 def escolher_times(nba):
     t1, t2 = pd.Series(nba["Team"].unique()).sample(2)
