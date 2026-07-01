@@ -188,13 +188,11 @@ def simulator_match(time_A, time_B, prod=None):
 
 
 def season_maker():
-    print("ola")
-
     times_season, matches_season = teams_selection()
 
     #simulator_match(times_season[0], times_season[1])
-    #for time in times_season:
-    #    time.exibir_time()
+    for time in times_season:
+        time.exibir_time()
     #print(matches_season)
 
     ##INICIO DA TEMPORADA
@@ -206,6 +204,16 @@ def season_maker():
                 break
 
         print("INICIANDO A RODADA:", rodada+1)
+
+            #CRIANDO JSON
+        round_caller = {
+            'tipo': "RODADA_INICIO",
+            'rodada': rodada+1
+        }
+        round_caller_json = json.dumps(round_caller, ensure_ascii=False)
+        #prod.produce(topic=topic, value=round_caller_json.encode("utf-8"), key=key, callback=delivery_callback)
+        #prod.poll(0)
+        print(round_caller_json) #PRODUCE EVENT
 
         #OS JOGOS ACONTECEM EM SIMULTÂNEO POR MEIO DAS THREADS
 
@@ -227,6 +235,25 @@ def season_maker():
         [reset_team(times_season[i]) for i in range(NUM_TIMES)]
             
         print(f"--- TODOS OS JOGOS DA RODADA {rodada+1} ACABARAM ---")
+
+            #CRIANDO JSON
+        round_caller = {
+            'tipo': "RODADA_FIM",
+            'rodada': rodada+1
+        }
+        round_caller_json = json.dumps(round_caller, ensure_ascii=False)
+        #prod.produce(topic=topic, value=round_caller_json.encode("utf-8"), key=key, callback=delivery_callback)
+        #prod.poll(0)
+        print(round_caller_json) #PRODUCE EVENT
+
+    #CRIANDO JSON
+    season_ender = {
+        'tipo': "SEASON_END"
+    }
+    season_ender_json = json.dumps(season_ender, ensure_ascii=False)
+    #prod.produce(topic=topic, value=season_ender_json.encode("utf-8"), key=key, callback=delivery_callback)
+    #prod.poll(0)
+    print(season_ender_json) #PRODUCE EVENT
 
 
 if __name__ == "__main__":
