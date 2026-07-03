@@ -56,3 +56,9 @@
         - pts feitos/medio
         pts tomados/medio
 
+5. ALGEBRA DE ALLEN
+   - streak_simultânea
+         - aviso (se mais de dois jogadores estiverem em streak ao mesmo tempo
+         - inicio/fim
+(EM CRIAÇÃO)
+
