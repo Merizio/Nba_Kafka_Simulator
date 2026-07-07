@@ -20,6 +20,12 @@
             <groupId>br.ufes.soe</groupId>
             <artifactId>nba-consumer</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>kafka-streams</artifactId>
+            <version>3.7.0</version> <!-- Use a mesma versão que já usa para o kafka-clients -->
+        </dependency>
+
     </dependencies>
 
     <build>
@@ -32,7 +38,7 @@
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
                 <configuration>
-                    <mainClass>br.ufes.soe.derived.DerivedMonitorMain</mainClass>
+                    <mainClass>br.ufes.soe.derived.OddConsumerProducer</mainClass>
                 </configuration>
             </plugin>
         </plugins>

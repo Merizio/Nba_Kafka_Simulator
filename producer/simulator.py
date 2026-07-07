@@ -7,7 +7,7 @@ import sys
 import threading
 from confluent_kafka import Producer
 
-NUM_TIMES = 4
+NUM_TIMES = 2
 
 #CONFIGURAÇÃO DO PRODUTOR KAFKA
 def delivery_callback(err, msg):
@@ -44,6 +44,7 @@ def teams_selection():
     return teams, matches
 
 def simulator_match(time_A, time_B, prod=None):
+    topic= "nba_game"
     #CRIANDO JSON
     match = {
         'tipo': "INICIO",
@@ -60,8 +61,8 @@ def simulator_match(time_A, time_B, prod=None):
 
     key = f"Game_{random.randrange(100,999)}"
     match_event = json.dumps(match, ensure_ascii=False)
-    #prod.produce(topic=topic, value=match_event.encode("utf-8"), key=key, callback=delivery_callback)
-    #prod.poll(0)
+    prod.produce(topic=topic, value=match_event.encode("utf-8"), key=key, callback=delivery_callback)
+    prod.poll(0)
 
     print(match_event) #PRODUCE EVENT
 
@@ -103,8 +104,8 @@ def simulator_match(time_A, time_B, prod=None):
                     'jogador_in': jogador2.Player,
                 }
                 event_subs_json = json.dumps(event_subs, ensure_ascii=False)
-                #prod.produce(topic=topic, value=event_subs_json.encode("utf-8"), key=key, callback=delivery_callback)
-                #prod.poll(0)
+                prod.produce(topic=topic, value=event_subs_json.encode("utf-8"), key=key, callback=delivery_callback)
+                prod.poll(0)
                 print(event_subs_json)
 
             #TURNOVER
@@ -161,8 +162,8 @@ def simulator_match(time_A, time_B, prod=None):
 
             if(event!=model):
                 event_json = json.dumps(event, ensure_ascii=False)
-                #prod.produce(topic=topic, value=event_json.encode("utf-8"), key=key, callback=delivery_callback)
-                #prod.poll(0)
+                prod.produce(topic=topic, value=event_json.encode("utf-8"), key=key, callback=delivery_callback)
+                prod.poll(0)
                 print(event_json)
 
             #IDEIA DE TEMPO REAL
@@ -175,12 +176,12 @@ def simulator_match(time_A, time_B, prod=None):
     }
 
     match_event_end = json.dumps(match_end, ensure_ascii=False)
-    #prod.produce(topic=topic, value=match_event_end.encode("utf-8"), key=key, callback=delivery_callback)
-    #prod.poll(0)
+    prod.produce(topic=topic, value=match_event_end.encode("utf-8"), key=key, callback=delivery_callback)
+    prod.poll(0)
 
     print(match_event_end) #PRODUCE EVENT
 
-    #prod.flush()
+    prod.flush()
 
     #STATUS FINAL DA PARTIDA
     print("\nFinal de Partida!\nEstatísticas Finais:\n")
@@ -189,6 +190,9 @@ def simulator_match(time_A, time_B, prod=None):
 
 def season_maker():
     times_season, matches_season = teams_selection()
+
+    prod = producer_create()
+    topic = "nba_game"
 
     #simulator_match(times_season[0], times_season[1])
     for time in times_season:
@@ -211,8 +215,8 @@ def season_maker():
             'rodada': rodada+1
         }
         round_caller_json = json.dumps(round_caller, ensure_ascii=False)
-        #prod.produce(topic=topic, value=round_caller_json.encode("utf-8"), key=key, callback=delivery_callback)
-        #prod.poll(0)
+        prod.produce(topic=topic, value=round_caller_json.encode("utf-8"), callback=delivery_callback)
+        prod.poll(0)
         print(round_caller_json) #PRODUCE EVENT
 
         #OS JOGOS ACONTECEM EM SIMULTÂNEO POR MEIO DAS THREADS
@@ -222,7 +226,7 @@ def season_maker():
         for time_a, time_b in (matches_season[rodada]):
             jogo_thread = threading.Thread(
                 target=simulator_match, 
-                args=(times_season[time_a], times_season[time_b]) # Passa os times como argumentos
+                args=(times_season[time_a], times_season[time_b], prod) # Passa os times como argumentos
             )
             
             threads.append((jogo_thread, time_a, time_b))
@@ -242,8 +246,8 @@ def season_maker():
             'rodada': rodada+1
         }
         round_caller_json = json.dumps(round_caller, ensure_ascii=False)
-        #prod.produce(topic=topic, value=round_caller_json.encode("utf-8"), key=key, callback=delivery_callback)
-        #prod.poll(0)
+        prod.produce(topic=topic, value=round_caller_json.encode("utf-8"), callback=delivery_callback)
+        prod.poll(0)
         print(round_caller_json) #PRODUCE EVENT
 
     #CRIANDO JSON
@@ -251,9 +255,11 @@ def season_maker():
         'tipo': "SEASON_END"
     }
     season_ender_json = json.dumps(season_ender, ensure_ascii=False)
-    #prod.produce(topic=topic, value=season_ender_json.encode("utf-8"), key=key, callback=delivery_callback)
-    #prod.poll(0)
+    prod.produce(topic=topic, value=season_ender_json.encode("utf-8"), callback=delivery_callback)
+    prod.poll(0)
     print(season_ender_json) #PRODUCE EVENT
+
+    prod.flush()
 
 
 if __name__ == "__main__":
