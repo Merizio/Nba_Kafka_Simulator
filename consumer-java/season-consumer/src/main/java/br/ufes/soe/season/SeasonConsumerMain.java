@@ -6,6 +6,7 @@ import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
 
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.utils.Bytes;
@@ -14,6 +15,7 @@ import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.errors.StreamsException;
+import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 import org.apache.kafka.streams.kstream.Consumed;
 import org.apache.kafka.streams.kstream.Grouped;
 import org.apache.kafka.streams.kstream.KStream;
@@ -44,13 +46,22 @@ public final class SeasonConsumerMain {
         props.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.String().getClass());
         props.put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, parser.NbaEventSerde.class);
         props.put(StreamsConfig.NUM_STREAM_THREADS_CONFIG, 3);
+        props.put(StreamsConfig.consumerPrefix(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG), "earliest");
+        props.put(
+            StreamsConfig.DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG, 
+            org.apache.kafka.streams.errors.LogAndContinueExceptionHandler.class
+        );
 
         final StreamsBuilder builder = new StreamsBuilder();
 
+        Serde<MatchPlayEvent> matchPlayEventSerde = new parser.JsonSerde<>(MatchPlayEvent.class);
         Serde<MatchOutcome> matchOutcomeSerde = new parser.JsonSerde<>(MatchOutcome.class);
         Serde<TeamStats> teamStatsSerde = new parser.JsonSerde<>(TeamStats.class);
+        
 
-        KStream<String, Optional<NbaPrimitiveEvent>> stream = builder.stream("nba_game", Consumed.with(Serdes.String(), new parser.NbaEventSerde()));
+        KStream<String, Optional<NbaPrimitiveEvent>> stream = builder
+        .stream("nba_game", Consumed.with(Serdes.String(), new parser.NbaEventSerde()))
+        .peek((key, value)->System.out.println(key+"+"+value));
 
 
         /**
@@ -74,7 +85,7 @@ public final class SeasonConsumerMain {
                 Player jogador = lanceDePonto.player();
                 
                 return jogador.getName();
-            })
+            }, Grouped.with(Serdes.String(), matchPlayEventSerde))
             .aggregate(
                 () -> 0, // Valor inicial
                 (player, playEvent, totalPoints) -> {
@@ -86,6 +97,7 @@ public final class SeasonConsumerMain {
  
         pontos_acumulados
         .toStream()
+        .peek((key, value)->System.out.println(value))
         .to(
             "stats_jogador",
             Produced.with(Serdes.String(), Serdes.Integer())
@@ -141,6 +153,7 @@ public final class SeasonConsumerMain {
 
         team_standings
             .toStream()
+            .peek((key, value)->System.out.println(value))
             .to("stats_time",
                 Produced.with(Serdes.String(), teamStatsSerde)
             );
@@ -163,7 +176,8 @@ public final class SeasonConsumerMain {
                 Player jogador = lanceDePonto.player();
                 
                 return jogador.getName();
-            }).windowedBy(TimeWindows.ofSizeWithNoGrace(Duration.ofSeconds(2))) // VALOR ALTERAVEL COMO TRESHOLD
+            },Grouped.with(Serdes.String(), matchPlayEventSerde))
+            .windowedBy(TimeWindows.ofSizeWithNoGrace(Duration.ofSeconds(2))) // VALOR ALTERAVEL COMO TRESHOLD
             .aggregate(
                 () -> 0, // Valor inicial
                 (player, playEvent, totalPoints) -> {
@@ -186,6 +200,7 @@ public final class SeasonConsumerMain {
                 );
                 return KeyValue.pair(nomeJogador, mensagemAlerta);
             })
+            .peek((key, value)->System.out.println(value))
             .to("hotstreak_player",
                 Produced.with(Serdes.String(), Serdes.String())
             );
@@ -214,12 +229,12 @@ public final class SeasonConsumerMain {
         hot_simultaneo
         .filter((key, value)->value>=2)
         .map((key, value)-> KeyValue.pair(key.key(), value))
+        .peek((key, value)->System.out.println(value))
         .to("simultaneous_streaks",
         Produced.with(
             Serdes.String(), 
             Serdes.Long())
         );
-
 
         
 
@@ -238,10 +253,21 @@ public final class SeasonConsumerMain {
             }
         });
 
+        streams.setUncaughtExceptionHandler((exception) -> {
+            System.err.println("❌ O STREAMS QUEBROU PELO SEGUINTE MOTIVO:");
+            // Mostra a linha exata do erro Java
+            return StreamsUncaughtExceptionHandler.StreamThreadExceptionResponse.SHUTDOWN_CLIENT;
+        });
+
         try {
-            //inicia a aplicação de streams, com a topologia definida
+            System.out.println("BUILDANDO STREAMS...");
+
+            streams.setStateListener((newState, oldState) -> {
+                System.out.println("ALTERAÇÃO DE ESTADO: De " + oldState + " para " + newState);
+            });
+
+            System.out.println(builder.build().describe());
             streams.start();
-            //ela fica executando, até que seja explicitamente interrompida
             latch.await();
         } catch (IllegalStateException | InterruptedException | StreamsException e) {
             System.exit(1);

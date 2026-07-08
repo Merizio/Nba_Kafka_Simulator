@@ -12,25 +12,27 @@ import br.ufes.soe.model.NbaPrimitiveEvent;
 public class NbaEventSerde implements Serde<Optional<NbaPrimitiveEvent>> {
 
     private final NbaEventDeserializer deserializer = new NbaEventDeserializer();
+    private final NbaEventSerializer serializer = new NbaEventSerializer();
 
     @Override
-    public void configure(Map<String, ?> configs, boolean isKey) {
+        public Serializer<Optional<NbaPrimitiveEvent>> serializer() {
+        return serializer;
+    }
+
+    @Override
+        public Deserializer<Optional<NbaPrimitiveEvent>> deserializer() {
+        return deserializer;
+    }
+
+    @Override
+        public void configure(Map<String, ?> configs, boolean isKey) {
+        serializer.configure(configs, isKey);
         deserializer.configure(configs, isKey);
     }
 
     @Override
     public void close() {
+        serializer.close();
         deserializer.close();
-    }
-
-    @Override
-    public Serializer<Optional<NbaPrimitiveEvent>> serializer() {
-        // Como o seu app só consome, podemos retornar null ou um serializer dummy
-        return null; 
-    }
-
-    @Override
-    public Deserializer<Optional<NbaPrimitiveEvent>> deserializer() {
-        return this.deserializer;
     }
 }
