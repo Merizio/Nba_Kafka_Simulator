@@ -46,6 +46,13 @@ public class OddsControlRules {
         try {
             String[] scoresA = scores[0].split(" ");
             String[] scoresB = scores[1].split(" ");
+
+            String timeA = scoresA[0].trim();
+            String timeB = scoresB[1].trim();
+     
+            control.setTeamAString(timeA);
+            control.setTeamBString(timeB);
+
             int scoreA = Integer.parseInt(scoresA[1]);
             int scoreB = Integer.parseInt(scoresB[0]);
 

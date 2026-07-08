@@ -20,12 +20,18 @@ public class Odds {
     public void setTeamA(Team teamA) {
         this.teamA = teamA.getName();
     }
+    public void setTeamAString(String teamA) {
+        this.teamA = teamA;
+    }
 
     public String getTeamB() {
         return teamB;
     }
     public void setTeamB(Team teamB) {
         this.teamB = teamB.getName();
+    }
+    public void setTeamBString(String teamB) {
+        this.teamB = teamB;
     }
 
     private Double oddsA, oddsB;

@@ -23,7 +23,6 @@
         <dependency>
             <groupId>org.apache.kafka</groupId>
             <artifactId>kafka-streams</artifactId>
-            <version>3.7.0</version> <!-- Use a mesma versão que já usa para o kafka-clients -->
         </dependency>
 
     </dependencies>

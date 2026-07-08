@@ -1,42 +1,27 @@
 package br.ufes.soe.derived;
 
-import java.time.Duration;
-import java.util.Collections;
-import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
-
-import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.clients.consumer.ConsumerRecords;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.clients.producer.KafkaProducer;
-import org.apache.kafka.clients.producer.ProducerConfig;
-import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.common.serialization.StringDeserializer;
-import org.apache.kafka.common.serialization.StringSerializer; // CORRETO
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import br.ufes.soe.derived.model.Odds;
-import br.ufes.soe.derived.parser.NbaEventDeserializer;
-import br.ufes.soe.derived.parser.NbaEventSerde;
-import br.ufes.soe.derived.rules.OddsControlRules;
-import br.ufes.soe.model.MatchState;
-import br.ufes.soe.model.NbaPrimitiveEvent;
-import br.ufes.soe.parse.NbaMessageParser;
-import br.ufes.soe.rules.GameMonitoringRules;
 
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.Topology;
+import org.apache.kafka.streams.errors.StreamsException;
 import org.apache.kafka.streams.kstream.Consumed;
-import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.Produced;
 
-import java.util.Optional;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import br.ufes.soe.derived.model.Odds;
+import br.ufes.soe.derived.parser.NbaEventSerde;
+import br.ufes.soe.derived.rules.OddsControlRules;
+import br.ufes.soe.model.MatchState;
+import br.ufes.soe.model.NbaPrimitiveEvent;
+import br.ufes.soe.parse.NbaMessageParser;
+import br.ufes.soe.rules.GameMonitoringRules;
 
 
 
@@ -70,7 +55,7 @@ public final class OddConsumerProducer {
             return "MatchPlayEvent".equals(nomeClasse);
         })
         .mapValues((key, opt) -> {
-            NbaPrimitiveEvent evento = opt.get();
+            NbaPrimitiveEvent evento = (NbaPrimitiveEvent) opt.get();
             Odds apostas = new Odds();
             
             try {
@@ -82,7 +67,7 @@ public final class OddConsumerProducer {
             try {
                 String jsonApostas = mapper.writeValueAsString(apostas);
                 return jsonApostas;
-            } catch (Exception e) {
+            } catch (JsonProcessingException e) {
                 System.err.println("Erro ao processar Json Saida");
                 return "{}";
             }
@@ -122,7 +107,7 @@ public final class OddConsumerProducer {
             streams.start();
             //ela fica executando, até que seja explicitamente interrompida
             latch.await();
-        } catch (Throwable e) {
+        } catch (IllegalStateException | InterruptedException | StreamsException e) {
             System.exit(1);
         }
         System.exit(0);

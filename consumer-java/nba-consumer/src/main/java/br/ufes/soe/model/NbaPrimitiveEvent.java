@@ -1,8 +1,8 @@
 package br.ufes.soe.model;
 
-import com.fasterxml.jackson.databind.JsonNode;
-
 import java.util.List;
+
+import com.fasterxml.jackson.databind.JsonNode;
 
 /**
  * Evento já interpretado a partir do JSON do produtor Python (sem lógica de negócio).
