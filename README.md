@@ -1,3 +1,55 @@
+# (PARA APAGAR DEPOIS)
+## TOPICOS DE ENTRADA
+### TOPICO: nba_game
+  tipos:
+  - INICIO
+  - EVENTO
+  - FINAL
+  - RODADA_INICIO (NOVO)
+  - RODADA_FIM (NOVO)
+  - SEASON_END (NOVO)
+
+Os novos são apenas para controle e visualização no dashboard, **a rodada_inicio tem a sinalização do numero da rodada, que será importante em um tópico futuro**
+
+### TOPICO: odds_game
+  Evento se manteve inalterado
+
+### TOPICO: stats_jogador (NOVO)
+  key:
+  - Nome do Jogador
+  
+  value:
+  - Pontuação
+
+A atualização de pontos/jogo vai ser em tempo real, então a média é a (pontuação/nº Rodada)
+
+### TOPICO: team_standings (NOVO)
+  key:
+  - nome do time
+  
+  value:
+  - win
+  - lose
+  - points_made
+  - points_take
+
+O princípio igual o stats jogador, média em relação ao nº da rodada
+
+### TOPICO: hotstreak_player (NOVO)
+  key:
+  - nome do jogador
+  
+  value:
+  - mensagem "O XXXX está pegando fogo! Fez YY pontos em sequência!"
+
+### TOPICO: simultaneous_streak (NOVO)
+  key:
+  - "HOTSTREAK" (const)
+  
+  value:
+  - qtd de jogadores em streak no momento
+
+
 # Kafka Lab (3 brokers) - Como rodar
 
 ## Requisitos
