@@ -6,6 +6,7 @@ import java.util.Optional;
 
 import org.apache.kafka.common.serialization.Deserializer;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -35,7 +36,7 @@ public class NbaEventDeserializer implements Deserializer<Optional<NbaPrimitiveE
             String rawJson = new String(data, StandardCharsets.UTF_8);
             JsonNode root = parser.parseToTree(rawJson);
             return parser.toEvent(root);
-        } catch (Exception e) {
+        } catch (JsonProcessingException e) {
             // Log de erro ou retornar Optional.empty() para ignorar mensagens malformadas (Poison Pills)
             System.err.println("Erro ao desserializar mensagem no tópico " + topic + ": " + e.getMessage());
             return Optional.empty(); 

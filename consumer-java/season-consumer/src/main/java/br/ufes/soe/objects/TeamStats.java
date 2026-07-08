@@ -15,4 +15,20 @@ public class TeamStats {
 
         return this;
     }
+
+    public int getWin() {
+        return win;
+    }
+
+    public int getLose() {
+        return lose;
+    }
+
+    public int getPoint_made() {
+        return point_made;
+    }
+
+    public int getPoint_take() {
+        return point_take;
+    }
 }
