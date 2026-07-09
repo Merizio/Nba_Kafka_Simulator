@@ -7,7 +7,7 @@ import sys
 import threading
 from confluent_kafka import Producer
 
-NUM_TIMES = 2
+NUM_TIMES = 6
 
 #CONFIGURAÇÃO DO PRODUTOR KAFKA
 def delivery_callback(err, msg):
