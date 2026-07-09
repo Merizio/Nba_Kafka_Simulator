@@ -17,6 +17,11 @@
 
     <dependencies>
         <dependency>
+            <groupId>com.fasterxml.jackson.module</groupId>
+            <artifactId>jackson-module-parameter-names</artifactId>
+            <version>2.17.2</version> <!-- Use a mesma versão das suas outras dependências do jackson -->
+        </dependency>
+        <dependency>
             <groupId>br.ufes.soe</groupId>
             <artifactId>nba-consumer</artifactId>
         </dependency>

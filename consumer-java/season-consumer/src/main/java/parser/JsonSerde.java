@@ -9,7 +9,9 @@ import org.apache.kafka.common.serialization.Serializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class JsonSerde<T> implements Serde<T> {
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper = new ObjectMapper()
+        .registerModule(new com.fasterxml.jackson.module.paramnames.ParameterNamesModule()); // Suporte a Records
+
     private final Class<T> targetClass;
 
     public JsonSerde(Class<T> targetClass) {

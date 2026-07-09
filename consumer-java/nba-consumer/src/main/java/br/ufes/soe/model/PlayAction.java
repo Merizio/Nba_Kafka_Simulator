@@ -10,14 +10,15 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 @JsonTypeInfo(
     use = JsonTypeInfo.Id.NAME, 
     include = JsonTypeInfo.As.PROPERTY, 
-    property = "type" // O JSON deve ter um campo "type" indicando qual é a ação
+    property = "type", // O JSON deve ter um campo "type" indicando qual é a ação
+    visible=true
 )
 @JsonSubTypes({
     @JsonSubTypes.Type(value = PlayAction.Point.class, name = "Point"),
     @JsonSubTypes.Type(value = PlayAction.Foul.class, name = "Foul"),
-    @JsonSubTypes.Type(value = PlayAction.Foul.class, name = "Turnover"),
-    @JsonSubTypes.Type(value = PlayAction.Foul.class, name = "Substitution"),
-    @JsonSubTypes.Type(value = PlayAction.Foul.class, name = "Unknown") 
+    @JsonSubTypes.Type(value = PlayAction.Turnover.class, name = "Turnover"),
+    @JsonSubTypes.Type(value = PlayAction.Substitution.class, name = "Substitution"),
+    @JsonSubTypes.Type(value = PlayAction.Unknown.class, name = "Unknown") 
 
 })
 

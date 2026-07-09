@@ -31,4 +31,16 @@ public class TeamStats {
     public int getPoint_take() {
         return point_take;
     }
+
+
+    @Override
+    public String toString() {
+        return "TeamStats{" +
+            "vitórias=" + this.win +   // Substitua pelos nomes reais dos seus atributos
+            ", derrotas=" + this.lose +
+            ", pontosMarcados=" + this.point_made +
+            ", pontosSofidos=" + this.point_take +
+            '}';
+    }
+
 }
