@@ -1,299 +1,86 @@
 package br.ufes.soe.season;
 
 import java.time.Duration;
-import java.util.List;
-import java.util.Optional;
+import java.util.HashSet;
 import java.util.Properties;
-import java.util.concurrent.CountDownLatch;
 
-import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
-import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.streams.KafkaStreams;
-import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
-import org.apache.kafka.streams.errors.StreamsException;
-import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 import org.apache.kafka.streams.kstream.Consumed;
-import org.apache.kafka.streams.kstream.Grouped;
 import org.apache.kafka.streams.kstream.KStream;
-import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.kstream.Produced;
 import org.apache.kafka.streams.kstream.TimeWindows;
-import org.apache.kafka.streams.kstream.Windowed;
-import org.apache.kafka.streams.state.KeyValueStore;
-import org.apache.kafka.streams.state.WindowStore;
 
-import br.ufes.soe.model.NbaPrimitiveEvent;
-import br.ufes.soe.model.NbaPrimitiveEvent.MatchPlayEvent;
-import br.ufes.soe.model.PlayAction;
-import br.ufes.soe.model.Player;
 import br.ufes.soe.objects.MatchOutcome;
 import br.ufes.soe.objects.TeamStats;
-/**
- * Modulo que constroi os builders de Kafka Streams
- */
-public final class SeasonConsumerMain {
-    public record HotStreakWindow(List<String> playersInStreak, int count) {}
+import parser.JsonSerde;
+
+public class SeasonConsumerMain {
 
     public static void main(String[] args) {
         Properties props = new Properties();
-
-        props.put(StreamsConfig.APPLICATION_ID_CONFIG, "season-stream-v3"); // Mude o ID para limpar estados antigos travados
-        props.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:19092");
+        props.put(StreamsConfig.APPLICATION_ID_CONFIG, "season-consumer-service");
+        props.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
         props.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.String().getClass());
-        props.put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, parser.NbaEventSerde.class);
 
-        props.put(StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1); // <-- Corrigido para 1 thread em desenvolvimento
-        props.put(StreamsConfig.consumerPrefix(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG), "earliest");
-        props.put(
-            StreamsConfig.DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG, 
-            org.apache.kafka.streams.errors.LogAndContinueExceptionHandler.class
-        );
-        props.put(StreamsConfig.STATESTORE_CACHE_MAX_BYTES_CONFIG, 0);
-        props.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, 100); // <-- Corrigido para 100ms
-        // Força o Kafka Streams a processar em lotes menores localmente, evitando travar as threads
-        props.put(StreamsConfig.PROCESSING_GUARANTEE_CONFIG, StreamsConfig.AT_LEAST_ONCE);
+        StreamsBuilder builder = new StreamsBuilder();
 
+        // Inicialização dos Serdes
+        JsonSerde<MatchOutcome> matchSerde = new JsonSerde<>(MatchOutcome.class);
+        JsonSerde<TeamStats> teamStatsSerde = new JsonSerde<>(TeamStats.class);
+        @SuppressWarnings("unchecked")
+        JsonSerde<HashSet<String>> setSerde = new JsonSerde<>((Class<HashSet<String>>) (Class<?>) HashSet.class);
 
+        KStream<String, MatchOutcome> gameStream = builder.stream("nba_game", 
+                Consumed.with(Serdes.String(), matchSerde));
 
-
-        final StreamsBuilder builder = new StreamsBuilder();
-
-
-        Serde<MatchPlayEvent> matchPlayEventSerde = new parser.JsonSerde<>(MatchPlayEvent.class);
-        Serde<MatchOutcome> matchOutcomeSerde = new parser.JsonSerde<>(MatchOutcome.class);
-        Serde<TeamStats> teamStatsSerde = new parser.JsonSerde<>(TeamStats.class);
-        
-
-        KStream<String, Optional<NbaPrimitiveEvent>> stream = builder
-        .stream("nba_game", Consumed.with(Serdes.String(), new parser.NbaEventSerde()))
-        //.peek((key, value)->System.out.println(key+"+"+value));
-        ;
-
-        /**
-         * CONSOME O EVENTO NBA_GAME
-         * BUSCA O TIPO : EVENTO (AÇÃO)
-         * ISOLA POR NOME DO JOGADOR
-         * ATRIBUI A PONTUAÇÃO AO JOGADOR QUANDO FOR UM EVENTO DE PONTO
-         * PRODUZ O EVENTO PARA ATUALIZAÇÃO REMOTA
-         */
-        
-        
-        KStream<String, MatchPlayEvent> stream_jogadas = stream
-            .filter((key, opt) -> opt.isPresent() && "MatchPlayEvent".equals(opt.get().getClass().getSimpleName()))
-            .mapValues(opt -> (MatchPlayEvent) opt.get());
-
-        //RETORNA UM MATCHPLAYEVENT
-
-        //TABLE QUE ENTREGA A PONTUAÇÃO TOTAL DE UM JOGADOR
-        /* 
-        KTable<String, Integer> pontos_acumulados = stream_jogadas
-            .filter((key, playEvent) -> playEvent.action() instanceof PlayAction.Point)
-            // 1. Altera a chave explicitamente para podermos rastrear
-            .selectKey((key, playEvent) -> {
-                PlayAction.Point lanceDePonto = (PlayAction.Point) playEvent.action();
-                return lanceDePonto.player().getName();
-            })
-            // 2. Coloque um peek aqui para ver se a nova chave foi gerada com sucesso
-            .peek((newKey, value) -> System.out.println("Nova chave gerada: " + newKey + value))
-            // 3. O groupBy agora fica simples porque a chave já foi alterada
-            .groupByKey(Grouped.with(Serdes.String(), matchPlayEventSerde))
-            .aggregate(
-                () -> 0, // Valor inicial
-                (player, playEvent, totalPoints) -> {
-                    System.out.println("to aqui");
-                    PlayAction.Point lanceDePonto = (PlayAction.Point) playEvent.action();
-                    return totalPoints + lanceDePonto.pointsValue(); // Soma os pontos
-                },
-                Materialized.<String, Integer, KeyValueStore<org.apache.kafka.common.utils.Bytes, byte[]>>as("player-points-store")
-                    .withKeySerde(Serdes.String())
-                    .withValueSerde(Serdes.Integer())
-            );
- 
-        pontos_acumulados
-        .toStream()
-        .peek((key, value)->System.out.println(value))
-        .to(
-            "stats_jogador",
-            Produced.with(Serdes.String(), Serdes.Integer())
-        );
-        */
-
-        //MODULO TEAM_STATS OKKKK
-
-        /**
-         * ESPERA UM EVENTO DE FINAL DE JOGO
-         * CONSTROI UM MATCH OUTCOME PARA CADA TIME DO CONFRONTO
-         * ABRE EM DUAS BRANCHS COM FLATMAP
-         * ATUALIZA A TABLE DO TIME
-         * PRODUZ UM EVENTO DE STATS DO TIME
-         */
-        //RETORNA UM MATCHENDEVENT
-
-        /* 
-        KStream<String, NbaPrimitiveEvent.MatchEndEvent> stream_jogadas_final = stream
-            .filter((key, opt) -> opt.isPresent() && (opt.get() instanceof NbaPrimitiveEvent.MatchEndEvent))
-            .mapValues(opt->(NbaPrimitiveEvent.MatchEndEvent) opt.get());
-            
-        //TABLE QUE ENTREGA A PONTUAÇÃO TOTAL DE UM TIME
-
-        KStream<String, MatchOutcome> stream_resultados = stream_jogadas_final
-            .flatMap((key, endEvent) -> {
-                String placarLinha = endEvent.finalScoreboard(); // Ex: "IND 103 X 101 BRK"
-                String[] partes = placarLinha.split(" X ");
-                String[] timeAInfo = partes[0].trim().split(" "); // ["IND", "103"]
-                String[] timeBInfo = partes[1].trim().split(" "); // ["101", "BRK"]
-
-                String nomeA = timeAInfo[0];
-                int scoreA = Integer.parseInt(timeAInfo[1]);
-                
-                String nomeB = timeBInfo[1];
-                int scoreB = Integer.parseInt(timeBInfo[0]);
-
-                // Retorna uma lista de resultados para o Kafka Streams
-                return List.of(
-                    KeyValue.pair(nomeA, new MatchOutcome(nomeA, scoreA, scoreB, scoreA > scoreB)),
-                    KeyValue.pair(nomeB, new MatchOutcome(nomeB, scoreB, scoreA, scoreB > scoreA))
-                );
-            });
-
-        KTable<String, TeamStats> team_standings = stream_resultados
-            .groupByKey(Grouped.with(Serdes.String(), matchOutcomeSerde))
-            .aggregate(
-                () -> new TeamStats(), // Construtor do seu objeto acumulador
-                (teamName, outcome, currentStats) -> {
-                    return currentStats.apply(outcome); 
-                },
-                Materialized.<String, TeamStats, KeyValueStore<Bytes, byte[]>>as("standings-store")
-                    .withKeySerde(Serdes.String())
-                    .withValueSerde(teamStatsSerde)
-            );
-
-        team_standings
+        // 1. Stats Jogador: Agrega pontos por jogador
+        gameStream
+            .groupBy((key, value) -> value.playerName()) // Requer campo playerName
+            .aggregate(() -> 0, (key, value, aggregate) -> aggregate + value.points(), // Requer campo points
+                       Materialized.with(Serdes.String(), Serdes.Integer()))
             .toStream()
-            .peek((key, value)->System.out.println(key + value))
-            .to("stats_time",
-                Produced.with(Serdes.String(), teamStatsSerde)
-            );
-        */
+            .to("stats_jogador", Produced.with(Serdes.String(), Serdes.Integer()));
 
-
-
-        /**
-         * REUTILIZA A STREAM DE JOGADAS
-         * FAZ UMA TABLE COM TIME WINDOW
-         * RETORNA PARA STREAM SE A PONTUAÇÃO FOR MAIOR QUE UM TRESHOLD
-         * TRANSFORMA NO EVENTO
-         * PRODUZ HOTSTREAK
-         */
-        
-        
-        KTable<Windowed<String>,Integer> hot_streak = stream_jogadas
-            .peek((key, value)->System.out.println(value))
-            .filter((key, playEvent) -> playEvent.action() instanceof PlayAction.Point)
-            .groupBy((key, playEvent) -> {
-                PlayAction.Point lanceDePonto = (PlayAction.Point) playEvent.action();
-                Player jogador = lanceDePonto.player();
-                
-                return jogador.getName();
-            },Grouped.with(Serdes.String(), matchPlayEventSerde))
-            .windowedBy(TimeWindows.ofSizeWithNoGrace(Duration.ofSeconds(5))) // VALOR ALTERAVEL COMO TRESHOLD
-            .aggregate(
-                () -> 0, // Valor inicial
-                (player, playEvent, totalPoints) -> {
-                    PlayAction.Point lanceDePonto = (PlayAction.Point) playEvent.action();
-                    return totalPoints + lanceDePonto.pointsValue(); // Soma os pontos
-                },
-                Materialized.<String, Integer, WindowStore<Bytes, byte[]>>as("hot-streak-store")
-                    .withKeySerde(Serdes.String())
-                    .withValueSerde(Serdes.Integer())
-            );
-
-        hot_streak
+        // 2. Team Standings: Agrega stats do time apenas quando for FIM DE JOGO
+        gameStream
+            .filter((key, value) -> "FIM DE JOGO".equalsIgnoreCase(value.type())) // Requer campo type
+            .groupBy((key, value) -> value.teamName())
+            .aggregate(TeamStats::new, (key, value, aggregate) -> aggregate.apply(value),
+                       Materialized.with(Serdes.String(), teamStatsSerde))
             .toStream()
-            .filter((key,value)->value > 5) // VALOR ALTERAVEL COMO TRESHOLD
-            .map((Windowed<String> windowedKey, Integer pontosNaWindow) -> {
-                String nomeJogador = windowedKey.key(); // Extrai o nome de dentro do objeto Windowed
-                String mensagemAlerta = String.format(
-                    "O %s está pegando fogo! Fez %d pontos em sequência!", 
-                    nomeJogador, pontosNaWindow
-                );
-                return KeyValue.pair(nomeJogador, mensagemAlerta);
-            })
-            .peek((key, value)->System.out.println(value))
-            .to("hotstreak_player",
-                Produced.with(Serdes.String(), Serdes.String())
-            );
+            .to("team_standings", Produced.with(Serdes.String(), teamStatsSerde));
 
-
-        /**
-         * RECEBE TOPICO HOTSTREAK
-         * COUNT EM UMA TIME WINDOW
-         * SE TIVER MAIS DE UMA STREAK
-         * PRODUZ EVENTO STREAK SIMULTANEA
-         */
-        /* 
-        KStream<String, String> allen = builder.stream("hotstreak_player", 
-            Consumed.with(Serdes.String(), Serdes.String()));
-
-        KStream<Windowed<String>, Long> hot_simultaneo = allen
-            .selectKey((key, value) -> "HOTSTREAK")
-            .groupByKey(Grouped.with(Serdes.String(), Serdes.String()))
+        // 3. Hotstreak: Jogador com 5+ pontos em 2 segundos
+        KStream<String, Integer> hotStreaks = gameStream
+            .groupBy((key, value) -> value.playerName())
             .windowedBy(TimeWindows.ofSizeWithNoGrace(Duration.ofSeconds(2)))
-            .count(
-            Materialized.<String, Long, WindowStore<Bytes, byte[]>>as("overlap_count")
-                .withKeySerde(Serdes.String())
-                .withValueSerde(Serdes.Long())
-            )
-            .toStream();
+            .aggregate(() -> 0, (key, value, aggregate) -> aggregate + value.points())
+            .toStream()
+            .filter((windowedKey, totalPoints) -> totalPoints >= 5)
+            .selectKey((windowedKey, totalPoints) -> windowedKey.key()); // Remove o metadado da janela
 
-        hot_simultaneo
-        .filter((key, value)->value>=2)
-        .map((key, value)-> KeyValue.pair(key.key(), value))
-        .peek((key, value)->System.out.println(value))
-        .to("simultaneous_streaks",
-        Produced.with(
-            Serdes.String(), 
-            Serdes.Long())
-        );
-        */
+        hotStreaks.to("hotstreak_player", Produced.with(Serdes.String(), Serdes.Integer()));
 
-        
+        // 4. Simultaneous Streak: 2+ jogadores em hotstreak no mesmo intervalo
+        hotStreaks
+            .groupBy((key, value) -> "simultaneous-check") // Agrupa tudo para uma mesma chave
+            .windowedBy(TimeWindows.ofSizeWithNoGrace(Duration.ofSeconds(2)))
+            .aggregate(HashSet::new, 
+                (key, value, set) -> { set.add(key); return set; },
+                Materialized.with(Serdes.String(), setSerde))
+            .toStream()
+            .filter((windowedKey, players) -> players.size() >= 2)
+            .mapValues((windowedKey, players) -> "Hotstreak simultâneo: " + players.toString())
+            .to("simultaneous_streak");
 
-        //vamos criar agora uma aplicação kafka streams com essa topologia e propriedades
-        final KafkaStreams streams = new KafkaStreams(builder.build(), props);
+        // Execução
+        KafkaStreams streams = new KafkaStreams(builder.build(), props);
+        streams.start();
 
-        System.out.println("🧹 Limpando estados temporários locais da RocksDB...");
-        streams.cleanUp();
-
-        final CountDownLatch latch = new CountDownLatch(1);
-        Runtime.getRuntime().addShutdownHook(new Thread("streams-shutdown-hook") {
-            @Override
-            public void run() {
-                streams.close();
-                latch.countDown();
-            }
-        });
-
-
-        streams.setUncaughtExceptionHandler((exception) -> {
-            System.err.println("❌ O STREAMS QUEBROU PELO SEGUINTE MOTIVO:");
-            exception.printStackTrace(); // <-- ESSENCIAL PARA VER O ERRO NO CONSOLE
-            return StreamsUncaughtExceptionHandler.StreamThreadExceptionResponse.SHUTDOWN_CLIENT;
-        });
-
-        try {
-            System.out.println("🚀 Iniciando a topologia do Kafka Streams...");
-            streams.start();
-            latch.await();
-        } catch (IllegalStateException | InterruptedException e) {
-            System.exit(1);
-        }
-        System.exit(0);
+        Runtime.getRuntime().addShutdownHook(new Thread(streams::close));
     }
-
 }
