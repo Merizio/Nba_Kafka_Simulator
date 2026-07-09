@@ -1,0 +1,297 @@
+.app {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 2.5rem 2rem 3rem;
+}
+
+.app-header {
+  margin-bottom: 2.5rem;
+}
+
+.eyebrow {
+  color: #8e8e93;
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  font-weight: 500;
+  margin-bottom: 0.35rem;
+}
+
+.app-header h1 {
+  font-size: clamp(2.4rem, 5vw, 3.4rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  margin-bottom: 0.5rem;
+}
+
+.connection-status {
+  color: #8e8e93;
+  font-size: 0.9rem;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(280px, 0.85fr);
+  gap: 2rem;
+  align-items: start;
+}
+
+.ranking-section h2,
+.panel h2 {
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  margin-bottom: 1rem;
+}
+
+.ranking-table-wrap {
+  overflow-x: auto;
+}
+
+.ranking-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.ranking-table thead th {
+  color: #8e8e93;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0 0 0.85rem;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.ranking-table tbody td {
+  padding: 1.15rem 0;
+  border-bottom: 1px solid #e5e5e5;
+  vertical-align: middle;
+}
+
+.ranking-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.pts-cell {
+  font-size: 1.55rem;
+  font-weight: 800;
+  width: 4.5rem;
+}
+
+.team-cell-inner {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.team-cell {
+  min-width: 220px;
+}
+
+.rank-num {
+  color: #8e8e93;
+  font-size: 0.95rem;
+  min-width: 1rem;
+}
+
+.team-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.team-info strong {
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.team-info span {
+  color: #1a1a1b;
+  font-size: 0.95rem;
+}
+
+.win-cell {
+  color: #28a745;
+  font-weight: 700;
+  width: 2.5rem;
+}
+
+.loss-cell {
+  color: #dc3545;
+  font-weight: 700;
+  width: 2.5rem;
+}
+
+.matchup-cell {
+  color: #1a1a1b;
+  font-size: 0.95rem;
+}
+
+.matchup-line {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.matchup-line.live .matchup-score {
+  color: #1a1a1b;
+  font-weight: 700;
+}
+
+.matchup-score {
+  margin: 0 0.15rem;
+}
+
+.odd-tag {
+  color: #8e8e93;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.panel {
+  border: 1px solid #e5e5e5;
+  border-radius: 14px;
+  padding: 1.1rem 1.15rem 1.15rem;
+  background: #fff;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.panel-header h2 {
+  margin-bottom: 0;
+}
+
+.leaders-badge {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #fff;
+  background: #1a1a1b;
+  padding: 0.35rem 0.8rem;
+  border-radius: 999px;
+}
+
+.leaders-list,
+.hot-streak-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.leaders-list li {
+  display: grid;
+  grid-template-columns: 1.5rem 1fr auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 0;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.leaders-list li:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.leader-rank {
+  color: #8e8e93;
+  font-size: 0.95rem;
+}
+
+.leader-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.leader-info strong {
+  font-size: 0.98rem;
+}
+
+.leader-info span {
+  color: #8e8e93;
+  font-size: 0.82rem;
+}
+
+.leader-value {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.leader-value strong {
+  display: block;
+  font-size: 1.05rem;
+}
+
+.leader-value span {
+  color: #8e8e93;
+  font-size: 0.82rem;
+}
+
+.hot-streak-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.hot-streak-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border: 1px solid #e5e5e5;
+  border-radius: 12px;
+  padding: 0.9rem 1rem;
+}
+
+.hot-streak-main {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.fire-icon {
+  font-size: 1rem;
+}
+
+.hot-streak-main strong {
+  display: block;
+  font-size: 0.98rem;
+}
+
+.hot-meta {
+  color: #8e8e93;
+  font-size: 0.82rem;
+}
+
+.hot-streak-stats {
+  text-align: right;
+}
+
+.hot-streak-stats strong {
+  display: block;
+  color: #fd7e14;
+  font-size: 1.05rem;
+}
+
+@media (max-width: 900px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .app {
+    padding: 1.5rem 1rem 2rem;
+  }
+}

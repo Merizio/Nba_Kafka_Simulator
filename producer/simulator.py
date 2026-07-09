@@ -194,6 +194,16 @@ def season_maker():
     prod = producer_create()
     topic = "nba_game"
 
+    season_start = {
+        'tipo': 'SEASON_START',
+        'times': [time.nome for time in times_season]
+    }
+    season_start_json = json.dumps(season_start, ensure_ascii=False)
+    prod.produce(topic=topic, value=season_start_json.encode("utf-8"), callback=delivery_callback)
+    prod.poll(0)
+    print(season_start_json)
+    prod.flush()
+
     #simulator_match(times_season[0], times_season[1])
     for time in times_season:
         time.exibir_time()

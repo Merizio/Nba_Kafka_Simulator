@@ -49,14 +49,10 @@ public final class SeasonConsumerMain {
         props.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:19092");
         props.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.String().getClass());
         props.put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, NbaEventSerde.class);
-        props.put(StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1);
+        props.put(StreamsConfig.NUM_STREAM_THREADS_CONFIG, 3);
         props.put(StreamsConfig.consumerPrefix(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG), "earliest");
-        props.put(
-                StreamsConfig.DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG,
-                org.apache.kafka.streams.errors.LogAndContinueExceptionHandler.class);
-        props.put(StreamsConfig.STATESTORE_CACHE_MAX_BYTES_CONFIG, 0);
+        props.put(StreamsConfig.STATESTORE_CACHE_MAX_BYTES_CONFIG, 10);
         props.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, 100);
-        props.put(StreamsConfig.PROCESSING_GUARANTEE_CONFIG, StreamsConfig.AT_LEAST_ONCE);
 
         final StreamsBuilder builder = new StreamsBuilder();
 

@@ -1,74 +1,61 @@
 # Sistemas orientados a eventos — simulação NBA com Apache Kafka
 
-Pipeline de eventos: produtor Python simula **temporada** (rodadas e partidas em paralelo) e publica em `nba_game`; serviços Java consomem/processam com **Kafka Consumer** e **Kafka Streams**, gerando tópicos derivados (odds, estatísticas, hot streak).
+Pipeline de eventos: produtor Python simula **temporada** (rodadas e partidas) e publica em `nba_game`; serviços Java processam com **Kafka Streams**; o **backend Spring Boot** consome Kafka e expõe dados via REST/SSE; o **frontend React** exibe o dashboard em tempo real.
 
 ## Requisitos
 
-- **Docker** e **Docker Compose**
-- **JDK 17+** e **Apache Maven 3.8+**
-- **Python 3.10+** (ambiente virtual em `producer/.venv`)
+| Ferramenta | Versão mínima | Uso |
+|------------|---------------|-----|
+| Docker + Docker Compose | — | cluster Kafka (3 brokers KRaft) |
+| JDK | 17+ | consumidores Java + backend |
+| Apache Maven | 3.8+ | build Java |
+| Python | 3.10+ | produtor/simulador |
+| Node.js + npm | 18+ | frontend React |
 
-Portas livres no host: **`19092`**, **`29092`**, **`39092`**.
+Portas livres no host: **`19092`**, **`29092`**, **`39092`**, **`8080`**, **`5173`**.
 
 ---
 
-## Arquitetura (resumo)
+## Arquitetura
+
+```mermaid
+flowchart LR
+    PY[simulator.py] --> T1[nba_game]
+    T1 --> ODD[odd-consumer-producer]
+    T1 --> SEA[season-consumer]
+    ODD --> T2[odds_game]
+    SEA --> T3[stats_* / hotstreak_*]
+    T1 --> API[backend Spring Boot]
+    T2 --> API
+    T3 --> API
+    API -->|REST + SSE| FE[frontend React]
+```
 
 | Componente | Tecnologia | Entrada | Saída |
 |------------|------------|---------|--------|
 | `producer/simulator.py` | Python + confluent-kafka | CSV NBA | `nba_game` |
-| `NbaGameConsumer` | Kafka Consumer | `nba_game` | painel no terminal |
 | `OddConsumerProducer` | Kafka Streams (`odd-streams`) | `nba_game` | `odds_game` |
-| `SeasonConsumerMain` | Kafka Streams (`season-stream-v3`) | `nba_game` | `hotstreak_player` (+ pipelines comentadas) |
+| `SeasonConsumerMain` | Kafka Streams (`season-stream-v4`) | `nba_game` | `stats_jogador`, `stats_time`, `hotstreak_player`, `simultaneous_streaks` |
+| `NbaGameConsumer` | Kafka Consumer *(opcional)* | `nba_game` | placar no terminal |
+| `backend/` | Spring Boot 3.3 | todos os tópicos | REST + SSE (`:8080`) |
+| `frontend/` | React + Vite | API backend | dashboard web (`:5173`) |
 
-Bootstrap para clientes na máquina host: **`localhost:19092`**.
-
----
-
-## Tópicos
-
-### `nba_game` (entrada principal)
-
-| `tipo` no JSON | Descrição |
-|----------------|-----------|
-| `INICIO` | início de partida (elencos) |
-| `EVENTO` | lance (ponto, falta, turnover, substituição) |
-| `FINAL` | fim de partida (placar) |
-| `RODADA_INICIO` | início da rodada (`rodada`: número) |
-| `RODADA_FIM` | fim da rodada |
-| `SEASON_END` | fim da temporada |
-
-### `odds_game`
-
-Snapshot JSON de odds por partida (`teamA`, `teamB`, `oddsA`, `oddsB`).
-
-### Tópicos derivados (`season-consumer`)
-
-| Tópico | Status no código | Conteúdo |
-|--------|------------------|----------|
-| `hotstreak_player` | **ativo** | alerta quando jogador soma >5 pts em janela de 5s |
-| `stats_time` | comentado | standings por time (`TeamStats`) |
-| `stats_jogador` | comentado | pontos acumulados por jogador |
-| `simultaneous_streaks` | comentado | contagem de hot streaks simultâneas |
-
-Crie **todos** os tópicos abaixo antes de rodar (mesmo os ainda comentados no código, se for reativá-los).
+Bootstrap Kafka para clientes no host: **`localhost:19092`**.
 
 ---
 
-## 1. Subir o cluster Kafka
+## Guia rápido — rodar tudo
 
-Na raiz do repositório:
+### Passo 1 — Cluster Kafka
+
+Na **raiz do repositório**:
 
 ```bash
 docker compose up -d
 docker compose ps
 ```
 
----
-
-## 2. Criar tópicos
-
-Execute na raiz (use `--if-not-exists` para não falhar se já existirem):
+### Passo 2 — Criar tópicos
 
 ```bash
 for TOPIC in nba_game odds_game hotstreak_player stats_time stats_jogador simultaneous_streaks; do
@@ -81,15 +68,7 @@ for TOPIC in nba_game odds_game hotstreak_player stats_time stats_jogador simult
 done
 ```
 
-Listar tópicos:
-
-```bash
-docker exec kafka-1 /opt/kafka/bin/kafka-topics.sh --list --bootstrap-server localhost:9092
-```
-
----
-
-## 3. Ambiente Python (produtor)
+### Passo 3 — Ambiente Python (produtor)
 
 ```bash
 cd producer
@@ -99,59 +78,61 @@ pip install -r requirements.txt
 cd ..
 ```
 
-O simulador lê **`data/list_nba_players.csv`** na raiz do repositório. **Rode sempre a partir da raiz** (não use `python -m producer` — não há pacote Python configurado).
+O simulador lê **`data/list_nba_players.csv`**. **Execute sempre a partir da raiz do repo.**
 
----
+### Passo 4 — Compilar módulos Java
 
-## 4. Compilar os módulos Java
-
-O `odd-consumer-producer` e o `season-consumer` dependem do JAR do `nba-consumer`:
+O backend e os streams dependem do JAR `nba-consumer`:
 
 ```bash
 cd consumer-java
 mvn install -DskipTests
+cd ..
 ```
 
----
+### Passo 5 — Instalar dependências do frontend
 
-## 5. Executar o sistema completo
+```bash
+cd frontend
+npm install
+cd ..
+```
 
-Ordem sugerida: **cluster + tópicos** → **Streams (odds e season)** → **monitor** → **simulador**.
+### Passo 6 — Subir os serviços (6 terminais)
 
-Abra **quatro terminais**:
+Ordem recomendada: **streams → backend → frontend → simulador**.
 
-| Terminal | Pasta | Comando |
-|----------|--------|---------|
-| **A** — odds | `consumer-java/` | `mvn -pl odd-consumer-producer exec:java` |
-| **B** — season / stats | `consumer-java/` | `mvn -pl season-consumer exec:java` |
-| **C** — placar ao vivo | `consumer-java/` | `mvn -pl nba-consumer exec:java` |
-| **D** — produtor | **raiz do repo** | `./producer/run_simulator.sh` |
+| Terminal | Onde executar | Comando |
+|----------|---------------|---------|
+| **1** — odds | `consumer-java/` | `mvn -pl odd-consumer-producer exec:java` |
+| **2** — season / stats | `consumer-java/` | `mvn -pl season-consumer exec:java` |
+| **3** — backend | `backend/` | `mvn spring-boot:run` |
+| **4** — frontend | `frontend/` | `npm run dev` |
+| **5** — simulador | **raiz do repo** | `./producer/run_simulator.sh` |
+| **6** — terminal *(opcional)* | `consumer-java/` | `mvn -pl nba-consumer exec:java` |
 
-No simulador, entre rodadas digite **`play`** quando solicitado.
+**Simulador:** entre rodadas, digite **`play`** quando solicitado.
 
-Alternativa ao script (raiz do repo, com venv ativo):
+**Dashboard web:** abra **http://localhost:5173**
+
+**API:** **http://localhost:8080/api/health** deve retornar `ok`
+
+Alternativa ao script do produtor (raiz, com venv ativo):
 
 ```bash
 python producer/simulator.py
 ```
 
-Pare cada processo Java com **Ctrl+C**.
+### Passo 7 — Parar tudo
 
-### Observações
-
-- **`OddConsumerProducer`** e **`SeasonConsumerMain`** são apps **Kafka Streams** distintas (`odd-streams` e `season-stream-v3`); ambas leem `nba_game` sem conflitar.
-- **`NbaGameConsumer`** usa `group.id=nba-monitor-grupo` e só assina `nba_game`.
-- O `season-consumer` chama `cleanUp()` ao iniciar — apaga state stores locais (útil em dev; reiniciar zera acumuladores locais).
-
----
-
-## 6. Parar o ambiente
+- Pare cada processo Java/Node/Python com **Ctrl+C**
+- Pare o cluster:
 
 ```bash
 docker compose down
 ```
 
-Remover volumes (dados dos brokers):
+Para apagar dados dos brokers:
 
 ```bash
 docker compose down -v
@@ -159,11 +140,100 @@ docker compose down -v
 
 ---
 
-## Estrutura Maven (`consumer-java/`)
+## Tópicos Kafka
+
+### `nba_game` (entrada principal)
+
+| `tipo` no JSON | Descrição |
+|----------------|-----------|
+| `INICIO` | início de partida (elencos) |
+| `EVENTO` | lance (ponto, falta, turnover, substituição) |
+| `FINAL` | fim de partida (placar) |
+| `RODADA_INICIO` | início da rodada |
+| `SEASON_START` | início da temporada (`times`: lista de siglas dos times) |
+| `RODADA_FIM` | fim da rodada |
+| `SEASON_END` | fim da temporada |
+
+### Tópicos derivados
+
+| Tópico | Conteúdo |
+|--------|----------|
+| `odds_game` | snapshot de odds por partida |
+| `stats_jogador` | pontos acumulados por jogador |
+| `stats_time` | standings por time (`TeamStats`) |
+| `hotstreak_player` | alerta de sequência de pontos (>2 pts em 5s) |
+| `simultaneous_streaks` | contagem de hot streaks simultâneas |
+
+---
+
+## Backend (`backend/`)
+
+Spring Boot 3.3 — consome Kafka e expõe JSON ao frontend.
+
+```bash
+cd backend
+mvn spring-boot:run
+```
+
+Requer `mvn install` em `consumer-java/` antes (passo 4).
+
+### Rotas da API
+
+| Método | Rota | Descrição |
+|--------|------|-----------|
+| `GET` | `/api/health` | health check |
+| `GET` | `/api/season` | temporada e rodada atual |
+| `GET` | `/api/ranking` | classificação dos times |
+| `GET` | `/api/leaders` | top 3 jogadores em pontos |
+| `GET` | `/api/hot-streak` | jogadores em hot streak |
+| `GET` | `/api/dashboard` | snapshot agregado |
+| `GET` | `/api/live` | SSE — atualizações em tempo real |
+
+O frontend usa **`/api/dashboard`** na carga inicial e **`/api/live`** (SSE) para atualizar ranking, líderes e hot streak sem recarregar a página.
+
+---
+
+## Frontend (`frontend/`)
+
+React 18 + Vite + TypeScript.
+
+```bash
+cd frontend
+npm run dev
+```
+
+Abre em **http://localhost:5173**. O Vite faz proxy de `/api` → `http://localhost:8080`.
+
+**Seções do dashboard:**
+- **Ranking** — classificação por pontos (3 pts por vitória), confronto ao vivo com odds
+- **Líderes** — top 3 em média de pontos (total ÷ jogos disputados)
+- **Hot Streak** — jogadores em sequência quente
+
+O ranking é preenchido ao receber `SEASON_START` do simulador — apenas os times da temporada atual, em ordem aleatória com 0 pontos.
+
+---
+
+## Estrutura do repositório
 
 ```
-consumer-java/
-├── nba-consumer/           # consumidor + modelo + parser + painel
-├── odd-consumer-producer/  # Kafka Streams → odds_game
-└── season-consumer/        # Kafka Streams → estatísticas / hot streak
+.
+├── docker-compose.yml          # cluster Kafka
+├── data/list_nba_players.csv   # elenco NBA
+├── producer/                   # simulador Python
+├── consumer-java/
+│   ├── nba-consumer/           # parser + modelo + terminal (opcional)
+│   ├── odd-consumer-producer/  # Kafka Streams → odds
+│   └── season-consumer/        # Kafka Streams → stats / hot streak
+├── backend/                    # Spring Boot REST + SSE
+└── frontend/                   # React dashboard
 ```
+
+---
+
+## Observações
+
+- **`OddConsumerProducer`** e **`SeasonConsumerMain`** são apps Kafka Streams distintas; ambas leem `nba_game` sem conflitar.
+- O **`backend`** usa `group.id=dashboard-api-grupo` e consome todos os tópicos.
+- O **`season-consumer`** chama `cleanUp()` ao iniciar — zera state stores locais (útil em dev).
+- O backend usa `auto-offset-reset: latest` — só processa mensagens **novas** após subir. Inicie o backend **antes** ou **junto** com o simulador.
+- Reiniciar o backend zera o estado em memória do dashboard (Kafka mantém o histórico).
