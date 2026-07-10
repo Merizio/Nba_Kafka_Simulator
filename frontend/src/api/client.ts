@@ -16,6 +16,7 @@ async function getJson<T>(path: string): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+// Rotas fetch - requisição http padrão
 export async function fetchDashboard(): Promise<DashboardSnapshot> {
   return getJson("/api/dashboard");
 }
@@ -36,9 +37,10 @@ export async function fetchHotStreak(): Promise<HotStreakEntry[]> {
   return getJson("/api/hot-streak");
 }
 
+// Rota SSE - Requisição via http permanente
 export function openLiveStream(
   onEvent: (snapshot: DashboardSnapshot, type: string) => void,
-  onError?: (err: Event) => void
+  onError?: (err: Event) => void,
 ): EventSource {
   const source = new EventSource(`${API_BASE}/api/live`);
 

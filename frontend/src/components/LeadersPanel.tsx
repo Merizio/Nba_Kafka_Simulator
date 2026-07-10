@@ -12,13 +12,13 @@ function formatAverage(gamesPlayed: number, averagePoints: number): string {
 }
 
 export function LeadersPanel({ leaders }: Props) {
+  console.log(leaders);
   return (
     <section className="panel leaders-panel">
       <div className="panel-header">
         <h2>LÍDERES</h2>
         <span className="leaders-badge">Pontos</span>
       </div>
-
       {leaders.length === 0 ? (
         <p className="empty-state">Aguardando estatísticas de jogadores…</p>
       ) : (
@@ -32,7 +32,9 @@ export function LeadersPanel({ leaders }: Props) {
               </div>
               <div className="leader-value">
                 <strong>{leader.totalPoints} pts</strong>
-                <span>{formatAverage(leader.gamesPlayed, leader.averagePoints)}</span>
+                <span>
+                  {formatAverage(leader.gamesPlayed, leader.averagePoints)}
+                </span>
               </div>
             </li>
           ))}

@@ -116,7 +116,7 @@ public class LiveDashboardService {
         return emitter;
     }
 
-    public void onNbaGameMessage(String key, String raw) {
+    public synchronized void onNbaGameMessage(String key, String raw) {
         if (raw == null || raw.isBlank()) {
             return;
         }
@@ -164,8 +164,7 @@ public class LiveDashboardService {
     }
 
     public void onPlayerStats(String player, int points) {
-        playerPoints.put(player, points);
-        broadcast("stats_jogador");
+        // Pontuação da temporada é acumulada em applyGameEvent a partir de nba_game.
     }
 
     public void onTeamStats(String team, String raw) {
@@ -257,8 +256,10 @@ public class LiveDashboardService {
             String player = sortedPlayers.get(i);
             int total = playerPoints.getOrDefault(player, 0);
             int games = playerGamesPlayed.getOrDefault(player, 0);
+
+            // Cria um Jogador e adiciona na lista leaders
             leaders.add(new LeaderEntryDto(
-                    i + 1,
+                    i+1,
                     player,
                     playerTeams.getOrDefault(player, "—"),
                     total,
@@ -308,6 +309,7 @@ public class LiveDashboardService {
                 && play.action() instanceof PlayAction.Point point) {
             String player = point.player().getName();
             if (!player.isBlank()) {
+                playerPoints.merge(player, point.pointsValue(), Integer::sum);
                 playerQuarters.put(player, play.quarter());
                 if (play.teamName() != null && !play.teamName().isBlank()) {
                     playerTeams.put(player, play.teamName());
