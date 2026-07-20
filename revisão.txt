@@ -1,0 +1,30 @@
+#Configs do NbaGameConsumer
+- BOOTSTRAP_SERVERS_CONFIG: Lista de portas para estabelecer a conexão inicial com o cluster kafka
+- GROUP_ID_CONFIG: Fornece o id do grupo que o consumidor pertence
+- KEY_DESERIALIZER_CLASS_CONFIG:
+- VALUE_DESERIALIZER_CLASS_CONFIG:
+- AUTO_OFFSET_RESET_CONFIG:
+- ENABLE_AUTO_COMMIT_CONFIG:
+
+
+- consumer.subscribe(nba_game, odds_game): São os tópicos que o consumer vai puxar
+
+// consumer.poll(#intervalo de chamada): Puxa os eventos do broker
+// record.value() é o valor da mensagem: JSON convertido para String que foi enviado pelo produto
+
+O tratamento de conflitos é feito colocando consumidores em group_ids diferentes
+caso eles estejam no mesmo grupo, ele vão conflitar pelos eventos
+por isso a separação do grupo id. 
+
+Mudança no System.out.println()
+
+Explicacão dos arquivos:
+ - Player e Team são as classes criadas para guardar jogadores e times
+ - OddsPayload classe criada para guardar e lidar com as odds
+ - PlayAction e NbaPrimitiveEvent sao os Records que guardam as informações
+    - PlayAction se referente aos eventos relacionados a MatchPlayEvent
+
+- NbaGameConsumer
+- NbaMessageParser.java {
+    Cuida de transformar a mensagem que vem em JSON em um NbaPrimitiveEvent que pode ser do tipo Start, Play ou End.
+}

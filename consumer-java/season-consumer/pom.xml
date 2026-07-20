@@ -11,20 +11,32 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <artifactId>odd-consumer-producer</artifactId>
-    <name>odd-consumer-producer</name>
-    <description>Consome eventos primitivos e publica eventos derivados no Kafka</description>
+    <artifactId>season-consumer</artifactId>
+    <name>season-consumer</name>
+    <description>Consumidor Kafka — eventos de temporada e rodadas</description>
 
     <dependencies>
+        <dependency>
+            <groupId>com.fasterxml.jackson.module</groupId>
+            <artifactId>jackson-module-parameter-names</artifactId>
+            <version>2.17.2</version> <!-- Use a mesma versão das suas outras dependências do jackson -->
+        </dependency>
         <dependency>
             <groupId>br.ufes.soe</groupId>
             <artifactId>nba-consumer</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.kafka</groupId>
+            <artifactId>kafka-clients</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.kafka</groupId>
             <artifactId>kafka-streams</artifactId>
         </dependency>
-
     </dependencies>
 
     <build>
@@ -37,7 +49,7 @@
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
                 <configuration>
-                    <mainClass>br.ufes.soe.derived.OddConsumerProducer</mainClass>
+                    <mainClass>br.ufes.soe.season.SeasonConsumerMain</mainClass>
                 </configuration>
             </plugin>
         </plugins>

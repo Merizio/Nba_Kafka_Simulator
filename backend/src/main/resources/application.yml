@@ -1,0 +1,18 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: nba-dashboard-api
+  kafka:
+    bootstrap-servers: localhost:19092
+    consumer:
+      group-id: dashboard-api-grupo
+      auto-offset-reset: latest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      enable-auto-commit: true
+
+app:
+  cors:
+    allowed-origins: "http://localhost:5173"
